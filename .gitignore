@@ -1,0 +1,38 @@
+# ── Secretos: JAMÁS al repositorio ──────────────────────────────
+.env
+.env.*
+!.env.example
+!*/.env.example
+*.key
+*.pem
+*.p12
+google-services.json
+GoogleService-Info.plist
+
+# ── Python ──────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.db
+
+# ── Node / frontend ─────────────────────────────────────────────
+node_modules/
+frontend/dist/
+
+# ── Flutter / mobile ────────────────────────────────────────────
+mobile/build/
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/android/local.properties
+mobile/android/.gradle/
+mobile/android/app/.cxx/
+mobile/ios/Pods/
+mobile/macos/Flutter/ephemeral/
+
+# ── IDEs y sistema ──────────────────────────────────────────────
+.idea/
+*.iml
+.DS_Store
+.claude/settings.local.json
