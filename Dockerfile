@@ -5,6 +5,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
+RUN chmod +x deploy/entrypoint.sh
 
-# TCP server runs inside uvicorn via asyncio lifespan
-CMD ["uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# El entrypoint corre las migraciones (alembic) y luego uvicorn.
+# El TCP server de ingestión arranca dentro de uvicorn vía el lifespan de asyncio.
+CMD ["./deploy/entrypoint.sh"]

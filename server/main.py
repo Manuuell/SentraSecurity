@@ -59,7 +59,10 @@ _offline_task: Optional[asyncio.Task] = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global _tcp_server, _offline_task
-    await init_db()
+    # En producción (Postgres) el esquema lo gestiona Alembic desde el entrypoint.
+    # En dev con SQLite, create_all como conveniencia para no exigir migraciones.
+    if engine.dialect.name == "sqlite":
+        await init_db()
     _tcp_server = await start_tcp_server()
     _offline_task = asyncio.create_task(_mark_offline_loop())
     yield
