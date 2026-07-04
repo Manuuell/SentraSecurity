@@ -8,7 +8,8 @@ plugins {
 android {
     namespace = "com.sentrasecurity.gps"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = "27.0.12077973"
+    // NDK 28.2 lo exige un plugin transitivo (jni); usar la mayor (retrocompatible)
+    ndkVersion = "28.2.13676358"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11

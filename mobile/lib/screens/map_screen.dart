@@ -1,15 +1,13 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
-import '../services/traccar_service.dart';
-import '../models/device.dart';
-import '../models/position.dart';
+import '../state/sentra_service.dart';
+import '../data/models/vehicle.dart';
 
 class MapScreen extends StatefulWidget {
-  const MapScreen({super.key, required this.device});
-  final Device device;
+  const MapScreen({super.key, required this.vehicleId});
+  final String vehicleId;
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -26,49 +24,47 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void initState() {
     super.initState();
-    _centerOnVehicle();
-  }
-
-  void _centerOnVehicle() {
-    final pos = context.read<TraccarService>().latestPositions[widget.device.id];
-    if (pos != null) {
-      _lastPosition = pos.latLng;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _mapCtrl.move(pos.latLng, 16);
-      });
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final v = context.read<SentraService>().vehicleById(widget.vehicleId);
+      if (v?.latLng != null) {
+        _lastPosition = v!.latLng;
+        _mapCtrl.move(v.latLng!, 16);
+      }
+    });
   }
 
   Future<void> _loadTodayTrack() async {
     setState(() { _loadingTrack = true; _showingToday = true; });
     try {
-      final svc = context.read<TraccarService>();
+      final svc = context.read<SentraService>();
       final now = DateTime.now();
       final from = DateTime(now.year, now.month, now.day);
-      final history = await svc.getHistory(deviceId: widget.device.id, from: from, to: now);
+      final history = await svc.getHistory(vehicleId: widget.vehicleId, from: from, to: now);
+      if (!mounted) return;
       setState(() => _track = history.map((p) => p.latLng).toList());
       if (_track.isNotEmpty) _mapCtrl.move(_track.last, 14);
     } finally {
-      setState(() => _loadingTrack = false);
+      if (mounted) setState(() => _loadingTrack = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final svc = context.watch<TraccarService>();
-    final pos = svc.latestPositions[widget.device.id];
+    final svc = context.watch<SentraService>();
+    final vehicle = svc.vehicleById(widget.vehicleId);
+    final pos = vehicle?.latLng;
 
-    if (_followVehicle && pos != null && pos.latLng != _lastPosition) {
-      _lastPosition = pos.latLng;
+    if (_followVehicle && pos != null && pos != _lastPosition) {
+      _lastPosition = pos;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _mapCtrl.move(pos.latLng, _mapCtrl.camera.zoom);
+        if (mounted) _mapCtrl.move(pos, _mapCtrl.camera.zoom);
       });
     }
 
-    final isMoving = (pos?.speed ?? 0) > 2;
-    final markerColor = !widget.device.isOnline ? const Color(0xFFBDBDBD)
-        : isMoving ? const Color(0xFF4A90D9)
-        : const Color(0xFF58CC02);
+    final isMoving = vehicle?.isMoving ?? false;
+    final markerColor = (vehicle?.isOnline ?? false)
+        ? (isMoving ? const Color(0xFF4A90D9) : const Color(0xFF58CC02))
+        : const Color(0xFFBDBDBD);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -83,7 +79,7 @@ class _MapScreenState extends State<MapScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(widget.device.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xFF3C3C3C))),
+            Text(vehicle?.name ?? '', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xFF3C3C3C))),
             Text(isMoving ? 'En movimiento' : 'Detenida',
                 style: TextStyle(fontSize: 11, color: markerColor, fontWeight: FontWeight.w600)),
           ],
@@ -93,8 +89,8 @@ class _MapScreenState extends State<MapScreen> {
         children: [
           FlutterMap(
             mapController: _mapCtrl,
-            options: MapOptions(
-              initialCenter: pos?.latLng ?? const LatLng(10.391, -75.479),
+            options: const MapOptions(
+              initialCenter: LatLng(10.391, -75.479),
               initialZoom: 15,
             ),
             children: [
@@ -109,11 +105,10 @@ class _MapScreenState extends State<MapScreen> {
               if (pos != null)
                 MarkerLayer(markers: [
                   Marker(
-                    point: pos.latLng,
-                    width: 48,
-                    height: 48,
+                    point: pos,
+                    width: 48, height: 48,
                     child: Transform.rotate(
-                      angle: pos.course * 3.14159 / 180,
+                      angle: (vehicle?.course ?? 0) * 3.14159 / 180,
                       child: Container(
                         decoration: BoxDecoration(
                           color: markerColor,
@@ -127,11 +122,9 @@ class _MapScreenState extends State<MapScreen> {
                 ]),
             ],
           ),
-
-          // Botones flotantes
           Positioned(
             right: 14,
-            bottom: pos != null ? 220 : 180,
+            bottom: vehicle != null ? 220 : 180,
             child: Column(
               children: [
                 _MapFab(
@@ -144,22 +137,18 @@ class _MapScreenState extends State<MapScreen> {
                 _MapFab(
                   icon: _showingToday ? Icons.route : Icons.route_outlined,
                   color: _showingToday ? const Color(0xFF4A90D9) : const Color(0xFF9E9E9E),
-                  onTap: _loadingTrack ? null : (_showingToday
-                      ? () => setState(() { _track = []; _showingToday = false; })
-                      : _loadTodayTrack),
+                  onTap: _loadingTrack
+                      ? null
+                      : (_showingToday
+                          ? () => setState(() { _track = []; _showingToday = false; })
+                          : _loadTodayTrack),
                   tooltip: 'Ruta de hoy',
                 ),
               ],
             ),
           ),
-
-          // Panel telemetría
-          if (pos != null)
-            Positioned(
-              left: 0, right: 0, bottom: 0,
-              child: _TelPanel(pos: pos),
-            ),
-
+          if (vehicle != null)
+            Positioned(left: 0, right: 0, bottom: 0, child: _TelPanel(vehicle: vehicle)),
           if (_loadingTrack)
             const Center(child: CircularProgressIndicator(color: Color(0xFF4A90D9))),
         ],
@@ -194,43 +183,47 @@ class _MapFab extends StatelessWidget {
 }
 
 class _TelPanel extends StatelessWidget {
-  const _TelPanel({required this.pos});
-  final Position pos;
+  const _TelPanel({required this.vehicle});
+  final Vehicle vehicle;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.fromLTRB(20, 14, 20, 30),
-    decoration: const BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 20, offset: Offset(0, -4))],
-    ),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(width: 36, height: 4,
-            decoration: BoxDecoration(color: const Color(0xFFE0E0E0), borderRadius: BorderRadius.circular(2))),
-        const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _TelItem(icon: Icons.speed_rounded, label: 'Velocidad',
-                value: '${pos.speed.toStringAsFixed(0)} km/h',
-                color: pos.speed > 80 ? const Color(0xFFE53935) : const Color(0xFF4A90D9)),
-            _TelItem(icon: Icons.power_settings_new_rounded, label: 'Motor',
-                value: pos.ignition == true ? 'ON' : 'OFF',
-                color: pos.ignition == true ? const Color(0xFF58CC02) : const Color(0xFFBDBDBD)),
-            _TelItem(icon: Icons.battery_charging_full_rounded, label: 'Batería',
-                value: pos.battery != null ? '${pos.battery}%' : '—',
-                color: (pos.battery ?? 100) < 20 ? const Color(0xFFE53935) : const Color(0xFF58CC02)),
-            _TelItem(icon: Icons.access_time_rounded, label: 'Hora',
-                value: '${pos.fixTime.toLocal().hour.toString().padLeft(2, "0")}:${pos.fixTime.toLocal().minute.toString().padLeft(2, "0")}',
-                color: const Color(0xFF9E9E9E)),
-          ],
-        ),
-      ],
-    ),
-  );
+  Widget build(BuildContext context) {
+    final seen = vehicle.lastSeen?.toLocal();
+    final hora = seen != null
+        ? '${seen.hour.toString().padLeft(2, "0")}:${seen.minute.toString().padLeft(2, "0")}'
+        : '—';
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 30),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 20, offset: Offset(0, -4))],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(width: 36, height: 4,
+              decoration: BoxDecoration(color: const Color(0xFFE0E0E0), borderRadius: BorderRadius.circular(2))),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _TelItem(icon: Icons.speed_rounded, label: 'Velocidad',
+                  value: '${vehicle.speed.toStringAsFixed(0)} km/h',
+                  color: vehicle.speed > 80 ? const Color(0xFFE53935) : const Color(0xFF4A90D9)),
+              _TelItem(icon: Icons.power_settings_new_rounded, label: 'Motor',
+                  value: vehicle.ignitionOn ? 'ON' : 'OFF',
+                  color: vehicle.ignitionOn ? const Color(0xFF58CC02) : const Color(0xFFBDBDBD)),
+              _TelItem(icon: Icons.battery_charging_full_rounded, label: 'Batería',
+                  value: vehicle.batteryPct != null ? '${vehicle.batteryPct}%' : '—',
+                  color: (vehicle.batteryPct ?? 100) < 20 ? const Color(0xFFE53935) : const Color(0xFF58CC02)),
+              _TelItem(icon: Icons.access_time_rounded, label: 'Hora', value: hora, color: const Color(0xFF9E9E9E)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _TelItem extends StatelessWidget {

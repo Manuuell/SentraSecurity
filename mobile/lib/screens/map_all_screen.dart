@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
-import '../services/traccar_service.dart';
-import '../models/device.dart';
+import '../state/sentra_service.dart';
 import 'device_screen.dart';
 
 class MapAllScreen extends StatelessWidget {
@@ -11,26 +10,26 @@ class MapAllScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final svc = context.watch<TraccarService>();
+    final svc = context.watch<SentraService>();
 
-    final markers = svc.devices.map((device) {
-      final pos = svc.latestPositions[device.id];
+    final markers = svc.vehicles.map((vehicle) {
+      final pos = vehicle.latLng;
       if (pos == null) return null;
-      final isMoving = pos.speed > 2;
-      final color = !device.isOnline ? const Color(0xFFBDBDBD)
-          : isMoving ? const Color(0xFF4A90D9)
-          : const Color(0xFF58CC02);
+      final color = !vehicle.isOnline
+          ? const Color(0xFFBDBDBD)
+          : vehicle.isMoving
+              ? const Color(0xFF4A90D9)
+              : const Color(0xFF58CC02);
 
       return Marker(
-        point: pos.latLng,
-        width: 44,
-        height: 44,
+        point: pos,
+        width: 44, height: 44,
         child: GestureDetector(
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DeviceScreen(device: device))),
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DeviceScreen(vehicleId: vehicle.id))),
           child: Tooltip(
-            message: device.name,
+            message: vehicle.name.isEmpty ? vehicle.id : vehicle.name,
             child: Transform.rotate(
-              angle: pos.course * 3.14159 / 180,
+              angle: vehicle.course * 3.14159 / 180,
               child: Container(
                 decoration: BoxDecoration(
                   color: color,

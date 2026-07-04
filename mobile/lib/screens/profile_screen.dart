@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/traccar_service.dart';
-import 'login_screen.dart';
+import '../state/sentra_service.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final svc = context.read<TraccarService>();
+    final svc = context.watch<SentraService>();
+    final user = svc.user;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FA),
@@ -21,7 +21,6 @@ class ProfileScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Avatar
             Center(
               child: Column(
                 children: [
@@ -31,25 +30,24 @@ class ProfileScreen extends StatelessWidget {
                     child: const Icon(Icons.person, color: Color(0xFF4A90D9), size: 40),
                   ),
                   const SizedBox(height: 12),
-                  const Text('Administrador', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF3C3C3C))),
+                  Text(user?.fullName.isNotEmpty == true ? user!.fullName : (user?.email ?? 'Usuario'),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF3C3C3C))),
                   const SizedBox(height: 4),
-                  const Text('SentraSecurity GPS', style: TextStyle(fontSize: 13, color: Color(0xFF9E9E9E))),
+                  Text(user?.roleLabel ?? '', style: const TextStyle(fontSize: 13, color: Color(0xFF9E9E9E))),
                 ],
               ),
             ),
-
             const SizedBox(height: 28),
-
-            // Info
+            if (user != null) ...[
+              _InfoTile(icon: Icons.email_outlined, label: 'Correo', value: user.email),
+              const SizedBox(height: 10),
+            ],
+            if (user?.phone != null && user!.phone!.isNotEmpty) ...[
+              _InfoTile(icon: Icons.phone_outlined, label: 'Teléfono', value: user.phone!),
+              const SizedBox(height: 10),
+            ],
             _InfoTile(icon: Icons.location_city_rounded, label: 'Ciudad', value: 'Cartagena de Indias'),
-            const SizedBox(height: 10),
-            _InfoTile(icon: Icons.public_rounded, label: 'Servidor', value: 'Oracle Cloud'),
-            const SizedBox(height: 10),
-            _InfoTile(icon: Icons.verified_rounded, label: 'Plan', value: 'Profesional'),
-
             const SizedBox(height: 28),
-
-            // Cerrar sesión
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -61,14 +59,8 @@ class ProfileScreen extends StatelessWidget {
                   side: const BorderSide(color: Color(0xFFE53935)),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
-                onPressed: () async {
-                  await svc.logout();
-                  if (!context.mounted) return;
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => const LoginScreen()),
-                    (_) => false,
-                  );
-                },
+                // Al cerrar sesión, RootGate vuelve al login automáticamente.
+                onPressed: () => svc.logout(),
               ),
             ),
           ],
@@ -97,7 +89,8 @@ class _InfoTile extends StatelessWidget {
         const SizedBox(width: 12),
         Text(label, style: const TextStyle(fontSize: 13, color: Color(0xFF9E9E9E))),
         const Spacer(),
-        Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF3C3C3C))),
+        Flexible(child: Text(value, textAlign: TextAlign.right,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF3C3C3C)))),
       ],
     ),
   );

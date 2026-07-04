@@ -1,23 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/traccar_service.dart';
-import '../models/device.dart';
+import '../state/sentra_service.dart';
 import 'map_screen.dart';
 
 class DeviceScreen extends StatelessWidget {
-  const DeviceScreen({super.key, required this.device});
-  final Device device;
+  const DeviceScreen({super.key, required this.vehicleId});
+  final String vehicleId;
 
   @override
   Widget build(BuildContext context) {
-    final svc = context.watch<TraccarService>();
-    final pos = svc.latestPositions[device.id];
-    final isOnline = device.isOnline;
-    final isMoving = (pos?.speed ?? 0) > 2;
+    final svc = context.watch<SentraService>();
+    final vehicle = svc.vehicleById(vehicleId);
 
-    Color statusColor = !isOnline ? const Color(0xFFBDBDBD)
-        : isMoving ? const Color(0xFF4A90D9)
-        : const Color(0xFF58CC02);
+    if (vehicle == null) {
+      return Scaffold(
+        appBar: AppBar(backgroundColor: Colors.white, elevation: 0),
+        body: const Center(child: Text('Vehículo no disponible')),
+      );
+    }
+
+    final isOnline = vehicle.isOnline;
+    final isMoving = vehicle.isMoving;
+    final statusColor = !isOnline
+        ? const Color(0xFFBDBDBD)
+        : isMoving
+            ? const Color(0xFF4A90D9)
+            : const Color(0xFF58CC02);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F8FA),
@@ -28,15 +36,15 @@ class DeviceScreen extends StatelessWidget {
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: Color(0xFF3C3C3C)),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(device.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17, color: Color(0xFF3C3C3C))),
+        title: Text(vehicle.name.isEmpty ? vehicle.id : vehicle.name,
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17, color: Color(0xFF3C3C3C))),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
-            // Status card
+            // Estado
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -57,84 +65,70 @@ class DeviceScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(children: [
-                        Container(
-                          width: 8, height: 8,
-                          decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle),
-                        ),
+                        Container(width: 8, height: 8, decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle)),
                         const SizedBox(width: 6),
-                        Text(
-                          !isOnline ? 'Sin señal' : isMoving ? 'En movimiento' : 'Detenida',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: statusColor),
-                        ),
+                        Text(!isOnline ? 'Sin señal' : isMoving ? 'En movimiento' : 'Detenida',
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: statusColor)),
                       ]),
                       const SizedBox(height: 4),
-                      Text('IMEI: ${device.uniqueId}', style: const TextStyle(fontSize: 12, color: Color(0xFFBDBDBD))),
+                      Text(vehicle.plate ?? 'ID: ${vehicle.id}',
+                          style: const TextStyle(fontSize: 12, color: Color(0xFFBDBDBD))),
                     ],
                   ),
                 ],
               ),
             ),
-
             const SizedBox(height: 16),
 
-            // Telemetría
-            if (pos != null) ...[
-              const _SectionTitle('Telemetría en tiempo real'),
-              const SizedBox(height: 10),
-              GridView.count(
-                crossAxisCount: 2,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 10,
-                crossAxisSpacing: 10,
-                childAspectRatio: 1.7,
-                children: [
-                  _TelCard(icon: Icons.speed_rounded, label: 'Velocidad',
-                    value: '${pos.speed.toStringAsFixed(0)} km/h',
-                    color: pos.speed > 80 ? const Color(0xFFE53935) : const Color(0xFF4A90D9)),
-                  _TelCard(icon: Icons.power_settings_new_rounded, label: 'Motor',
-                    value: pos.ignition == true ? 'Encendido' : 'Apagado',
-                    color: pos.ignition == true ? const Color(0xFF58CC02) : const Color(0xFFBDBDBD)),
-                  _TelCard(icon: Icons.battery_charging_full_rounded, label: 'Batería',
-                    value: pos.battery != null ? '${pos.battery}%' : '—',
-                    color: (pos.battery ?? 100) < 20 ? const Color(0xFFE53935) : const Color(0xFF58CC02)),
-                  _TelCard(icon: Icons.flash_on_rounded, label: 'Voltaje',
-                    value: pos.voltage != null ? '${pos.voltage!.toStringAsFixed(1)}V' : '—',
+            const _SectionTitle('Telemetría en tiempo real'),
+            const SizedBox(height: 10),
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              childAspectRatio: 1.7,
+              children: [
+                _TelCard(icon: Icons.speed_rounded, label: 'Velocidad',
+                    value: '${vehicle.speed.toStringAsFixed(0)} km/h',
+                    color: vehicle.speed > 80 ? const Color(0xFFE53935) : const Color(0xFF4A90D9)),
+                _TelCard(icon: Icons.power_settings_new_rounded, label: 'Motor',
+                    value: vehicle.ignitionOn ? 'Encendido' : 'Apagado',
+                    color: vehicle.ignitionOn ? const Color(0xFF58CC02) : const Color(0xFFBDBDBD)),
+                _TelCard(icon: Icons.battery_charging_full_rounded, label: 'Batería',
+                    value: vehicle.batteryPct != null ? '${vehicle.batteryPct}%' : '—',
+                    color: (vehicle.batteryPct ?? 100) < 20 ? const Color(0xFFE53935) : const Color(0xFF58CC02)),
+                _TelCard(icon: Icons.flash_on_rounded, label: 'Voltaje',
+                    value: vehicle.voltage != null ? '${vehicle.voltage!.toStringAsFixed(1)}V' : '—',
                     color: const Color(0xFFFF9600)),
-                  _TelCard(icon: Icons.satellite_alt_rounded, label: 'Satélites',
-                    value: '${pos.satellites ?? "—"}',
+                _TelCard(icon: Icons.satellite_alt_rounded, label: 'Satélites',
+                    value: '${vehicle.satellites ?? "—"}',
                     color: const Color(0xFF9C27B0)),
-                  _TelCard(icon: Icons.signal_cellular_alt_rounded, label: 'Señal GSM',
-                    value: '${pos.gsm ?? "—"}',
+                _TelCard(icon: Icons.signal_cellular_alt_rounded, label: 'Señal GSM',
+                    value: vehicle.gsmSignal != null ? '${vehicle.gsmSignal}/31' : '—',
                     color: const Color(0xFF00BCD4)),
-                ],
-              ),
-              const SizedBox(height: 16),
-            ],
+              ],
+            ),
+            const SizedBox(height: 16),
 
-            // Acciones
             const _SectionTitle('Acciones'),
             const SizedBox(height: 10),
-
-            // Ver en mapa
             _ActionButton(
               icon: Icons.map_rounded,
               label: 'Ver en mapa',
               subtitle: 'Ubicación en tiempo real',
               color: const Color(0xFF4A90D9),
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MapScreen(device: device))),
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MapScreen(vehicleId: vehicle.id))),
             ),
             const SizedBox(height: 10),
-
-            // Cortar motor
             _ActionButton(
               icon: Icons.power_off_rounded,
               label: 'Cortar motor',
-              subtitle: 'El vehículo se detendrá gradualmente',
+              subtitle: 'Disponible próximamente',
               color: const Color(0xFFE53935),
-              onTap: () => _confirmCutEngine(context, svc),
+              onTap: () => _comingSoon(context),
             ),
-
             const SizedBox(height: 24),
           ],
         ),
@@ -142,40 +136,22 @@ class DeviceScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _confirmCutEngine(BuildContext context, TraccarService svc) async {
-    final confirm = await showDialog<bool>(
+  void _comingSoon(BuildContext context) {
+    showDialog<void>(
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('¿Cortar motor?', style: TextStyle(fontWeight: FontWeight.w800)),
-        content: Text('Esto detendrá "${device.name}" gradualmente. ¿Continuar?',
-            style: const TextStyle(color: Color(0xFF9E9E9E))),
+        title: const Text('Corte de motor', style: TextStyle(fontWeight: FontWeight.w800)),
+        content: const Text(
+          'El corte remoto de motor estará disponible pronto, cuando se habilite '
+          'el envío de comandos al rastreador.',
+          style: TextStyle(color: Color(0xFF9E9E9E)),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE53935), foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-            child: const Text('Cortar'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Entendido')),
         ],
       ),
     );
-    if (confirm != true || !context.mounted) return;
-    try {
-      await svc.cutEngine(device.id);
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: const Text('Comando enviado'), backgroundColor: const Color(0xFF58CC02),
-            behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-      );
-    } catch (e) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: const Color(0xFFE53935),
-            behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-      );
-    }
   }
 }
 

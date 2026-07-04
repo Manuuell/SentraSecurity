@@ -1,7 +1,7 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/traccar_service.dart';
-import 'main_shell.dart';
+import '../state/sentra_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -18,16 +18,21 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _error;
 
   Future<void> _login() async {
+    if (_emailCtrl.text.trim().isEmpty || _passCtrl.text.isEmpty) return;
     setState(() { _loading = true; _error = null; });
     try {
-      await context.read<TraccarService>().login(_emailCtrl.text.trim(), _passCtrl.text);
-      if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const MainShell()),
-      );
-    } catch (e) {
-      setState(() => _error = 'Usuario o contraseña incorrectos');
-    } finally {
+      // Al autenticarse, RootGate cambia solo a la pantalla principal.
+      await context.read<SentraService>().login(_emailCtrl.text.trim(), _passCtrl.text);
+    } on DioException catch (e) {
+      final code = e.response?.statusCode;
+      setState(() => _error = code == 429
+          ? 'Demasiados intentos. Espera un minuto.'
+          : code == 401
+              ? 'Correo o contraseña incorrectos'
+              : 'No se pudo conectar con el servidor');
+      if (mounted) setState(() => _loading = false);
+    } catch (_) {
+      setState(() => _error = 'No se pudo conectar con el servidor');
       if (mounted) setState(() => _loading = false);
     }
   }
