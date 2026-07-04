@@ -1,0 +1,16 @@
+# La imagen solo necesita el backend Python
+frontend/
+mobile/
+docs/
+tools/
+traccar/
+.git/
+.github/
+node_modules/
+.venv/
+venv/
+*.db
+*.md
+.env
+.env.*
+!.env.example

@@ -89,3 +89,14 @@ export interface AuthTokens {
   refresh_token: string;
   user: AuthUser;
 }
+
+export interface AdminUser {
+  id: number;
+  email: string;
+  full_name: string;
+  phone: string | null;
+  role: Role;
+  is_active: boolean;
+  created_at: string | null;
+  vehicle_count: number;
+}

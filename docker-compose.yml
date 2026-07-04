@@ -1,12 +1,14 @@
-# Stack propio de SentraSecurity (ADR-1/ADR-2 del plan):
-# PostgreSQL + API FastAPI con ingest TCP integrado (monolito, suficiente
-# hasta ~300 motos; la separación api/ingest llega con LISTEN/NOTIFY).
+# Stack de producción de SentraSecurity (ADR-1/ADR-2 del plan):
+# PostgreSQL + API FastAPI con ingest TCP integrado. El frontend se sirve
+# estático desde el nginx del host; OSRM corre aparte (contenedor sentra-osrm).
 #
 # Secretos SIEMPRE en .env (ver .env.example) — nunca en este archivo.
+# Arranque en el VPS:  docker compose up -d --build
 
 services:
   postgres:
     image: postgres:16-alpine
+    container_name: sentra-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-sentra_gps}
@@ -22,6 +24,8 @@ services:
 
   api:
     build: .
+    image: sentra-api:latest
+    container_name: sentra-api
     restart: unless-stopped
     depends_on:
       postgres:
@@ -29,14 +33,11 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-sentra}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-sentra_gps}
       SECRET_KEY: ${SECRET_KEY:?Definir SECRET_KEY en .env}
-      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://sentrasecurity.duckdns.org}
       TZ: America/Bogota
     ports:
-      - "8000:8000"   # API REST + WebSocket (en prod va detrás de Caddy/HTTPS)
-      - "8090:8090"   # Ingest TCP de los ST-907L
-      # El puerto 5013 (legado de Traccar) ya está abierto en la Security List
-      # de Oracle: mapearlo también evita abrir otro puerto en la consola
-      - "5013:8090"
+      - "127.0.0.1:8000:8000"   # API REST + WebSocket (el nginx del host proxya con HTTPS)
+      - "5013:8090"             # Ingestión TCP de los ST-907L (puerto abierto en OCI)
 
 volumes:
   pg_data:

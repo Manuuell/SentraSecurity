@@ -24,11 +24,19 @@ from server.database import AsyncSessionLocal, get_db
 from server.models import ROLE_ADMIN, ROLE_OPERATOR, User, Vehicle, Position, Alarm
 from server.ws import manager as ws_manager
 from server.api.auth_routes import router as auth_router
+from server.api.admin_routes import router as admin_router
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 router.include_router(auth_router)
+router.include_router(admin_router)
+
+
+@router.get("/healthz")
+async def healthz():
+    """Chequeo de salud sin autenticación (monitoreo y CI/CD)."""
+    return {"status": "ok"}
 
 
 # ---------------------------------------------------------------------------

@@ -1,0 +1,77 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  # ── Pruebas: backend + typecheck del frontend ──────────────────
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Pruebas del backend
+        run: |
+          pip install -r requirements.txt pytest httpx
+          pytest server/tests -q
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Build del frontend (typecheck)
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+
+  # ── Despliegue al VPS (solo si pasan las pruebas) ──────────────
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    concurrency: deploy-production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Build del frontend (producción)
+        env:
+          VITE_API_URL: ""
+          VITE_WS_URL: ""
+          VITE_OSRM_URL: https://sentrasecurity.duckdns.org/osrm
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+
+      - name: Configurar SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Desplegar frontend (estático)
+        run: |
+          rsync -az --delete -e "ssh -i ~/.ssh/deploy_key" \
+            frontend/dist/ "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/sentrasecurity/"
+
+      - name: Desplegar backend (pull + rebuild)
+        run: |
+          ssh -i ~/.ssh/deploy_key "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+            'cd ~/sentra-gps/repo && git pull --ff-only && docker compose up -d --build && docker image prune -f'
+
+      - name: Verificar salud
+        run: |
+          sleep 8
+          curl -fsS https://sentrasecurity.duckdns.org/api/healthz && echo " · API OK"
