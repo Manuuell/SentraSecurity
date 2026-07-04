@@ -13,7 +13,7 @@
 | Dato | Valor | Ejemplo |
 |---|---|---|
 | IP del servidor | `__________` | (IP pública de la VM) |
-| Puerto TCP | **8090** | fijo |
+| Puerto TCP | **5013** | fijo (puerto público abierto; internamente el servidor escucha en 8090) |
 | APN del operador del SIM | `__________` | Claro: `internet.comcel.com.co` · Movistar: `internet.movistar.com.co` · Tigo: `web.colombiamovil.com.co` |
 | Usuario/clave APN (si aplica) | casi siempre vacío | — |
 | Contraseña nueva del equipo | `__________` | **NO usar `0000`** — asignar una por equipo y registrarla en el sistema |
@@ -55,7 +55,7 @@ Si el APN pide usuario/clave: `8030000 <APN> <user> <pass>`
 
 **2.2 · Servidor (IP y puerto)**
 ```
-8040000 <IP_DEL_SERVIDOR> 8090
+8040000 <IP_DEL_SERVIDOR> 5013
 ```
 
 **2.3 · Intervalo de reporte** (15 s)
@@ -103,7 +103,7 @@ RCONF
 ```
 El equipo responde con toda su config. Confirmar:
 - [ ] `APN:` correcto
-- [ ] `IP:<IP_DEL_SERVIDOR>:8090`
+- [ ] `IP:<IP_DEL_SERVIDOR>:5013`
 - [ ] `MODE:GPRS`
 - [ ] `GPRS UPLOAD TIME:15`
 - [ ] `TIME ZONE:E00`

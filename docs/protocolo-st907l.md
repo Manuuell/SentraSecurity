@@ -94,7 +94,7 @@ downlink. Implicaciones para la arquitectura (ver §5).
 | Paso | Comando | Ejemplo |
 |---|---|---|
 | 1. APN del operador | `803`+pwd+` `+APN[+` `+user+` `+pass] | `8030000 internet.movistar.com.co` |
-| 2. Servidor propio | `804`+pwd+` `+IP+` `+puerto | `8040000 <IP_VM> 8090` |
+| 2. Servidor propio | `804`+pwd+` `+IP+` `+puerto | `8040000 <IP_VM> 5013` (5013 público → 8090 interno) |
 | 3. Intervalo de subida | `805`+pwd+` `+segundos (10–18000; 0 = apaga GPRS) | `8050000 15` |
 | 4. Zona horaria **UTC** | `896`+pwd+`E00` | `8960000E00` — **nunca otra: el parser asume UTC** |
 | 5. Cambiar contraseña | `777`+nueva+vieja | `77785310000` |

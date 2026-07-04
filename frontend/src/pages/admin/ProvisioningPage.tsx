@@ -23,7 +23,7 @@ export default function ProvisioningPage() {
   const deviceId = params.get("id") ?? "";
 
   const [serverIp, setServerIp] = useState("");
-  const [port, setPort] = useState("8090");
+  const [port, setPort] = useState("5013");
   const [operator, setOperator] = useState("claro");
   const [customApn, setCustomApn] = useState("");
   const [intervalSec, setIntervalSec] = useState<number>(15);
