@@ -11,6 +11,8 @@ import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import LiveMapPage from "./pages/LiveMapPage";
+import PrivacyPage from "./pages/PrivacyPage";
+import TermsPage from "./pages/TermsPage";
 import { AdminLayout } from "./app/AdminLayout";
 
 // El área admin se carga bajo demanda: mantiene liviano el bundle del mapa en vivo
@@ -74,6 +76,8 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                 <Routes>
                   <Route path="/" element={<HomeRoute />} />
                   <Route path="/login" element={<LoginRoute />} />
+                  <Route path="/privacidad" element={<PrivacyPage />} />
+                  <Route path="/terminos" element={<TermsPage />} />
                   <Route
                     path="/admin"
                     element={

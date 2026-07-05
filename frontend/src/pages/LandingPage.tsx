@@ -233,6 +233,15 @@ export default function LandingPage() {
 
           <div className="lg-phone-wrap" aria-hidden>
             <div className="lg-phone">
+              <div className="lg-phone-push lg-glass lg-glass--strong">
+                <span className="lg-phone-push-icon">
+                  <Bell size={14} />
+                </span>
+                <div>
+                  <b>SentraSecurity</b>
+                  <span>Alerta: movimiento sin encendido</span>
+                </div>
+              </div>
               <div className="lg-phone-notch" />
               <div className="lg-phone-screen">
                 <div className="lg-phone-header">
@@ -244,47 +253,62 @@ export default function LandingPage() {
                 </div>
                 <div className="lg-phone-map">
                   <div className="lg-phone-map-grid" />
-                  <span className="lg-phone-map-pin">
-                    <MapPin size={16} />
-                  </span>
+                  <svg className="lg-phone-map-route" viewBox="0 0 280 108" fill="none">
+                    <path
+                      id="lg-phone-route-d"
+                      d="M18 78 C 55 40, 95 92, 145 52 S 235 28, 262 58"
+                      stroke="rgba(0,253,252,0.28)"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeDasharray="1 9"
+                    />
+                    <path
+                      className="lg-phone-map-progress"
+                      d="M18 78 C 55 40, 95 92, 145 52 S 235 28, 262 58"
+                      stroke="#00fdfc"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                    />
+                    <circle className="lg-phone-map-marker" r="5" fill="#00fdfc" />
+                  </svg>
                 </div>
                 <div className="lg-phone-stats">
                   <div>
-                    <Gauge size={14} />
+                    <Gauge size={16} />
                     <b>0</b>
                     <small>km/h</small>
                   </div>
                   <div>
-                    <BatteryMedium size={14} />
+                    <BatteryMedium size={16} />
                     <b>82%</b>
                     <small>Batería</small>
                   </div>
                   <div>
-                    <Route size={14} />
+                    <Route size={16} />
                     <b>12.4</b>
                     <small>km hoy</small>
                   </div>
                 </div>
                 <div className="lg-phone-cut-btn">
-                  <PowerOff size={16} />
+                  <PowerOff size={18} />
                   Cortar motor
                 </div>
                 <p className="lg-phone-cut-hint">Se pedirá confirmación antes de ejecutar</p>
                 <div className="lg-phone-tabbar">
                   <span className="active">
-                    <Bike size={16} />
+                    <Bike size={18} />
                     Motos
                   </span>
                   <span>
-                    <MapPin size={16} />
+                    <MapPin size={18} />
                     Mapa
                   </span>
                   <span>
-                    <Bell size={16} />
+                    <Bell size={18} />
                     Alertas
                   </span>
                   <span>
-                    <User size={16} />
+                    <User size={18} />
                     Perfil
                   </span>
                 </div>
@@ -311,17 +335,65 @@ export default function LandingPage() {
       </section>
 
       <section className="lg-section">
-        <div className="lg-cta lg-glass lg-glass--strong">
-          <span className="lg-eyebrow">Empieza hoy</span>
-          <h2 className="lg-h2">¿Listo para proteger tu moto?</h2>
-          <p className="lg-lead lg-center" style={{ marginInline: "auto" }}>
-            Contacta a SentraSecurity para activar tu servicio, o ingresa si ya eres
-            cliente.
-          </p>
-          <div className="lg-hero-actions" style={{ justifyContent: "center" }}>
-            <Link to="/login" className="lg-btn lg-btn--primary">
-              Iniciar sesión
-            </Link>
+        <div className="lg-cta-section">
+          <div className="lg-cta lg-glass lg-glass--strong">
+            <span className="lg-eyebrow">Empieza hoy</span>
+            <h2 className="lg-h2">¿Listo para proteger tu moto?</h2>
+            <p className="lg-lead">
+              Contacta a SentraSecurity para activar tu servicio, o ingresa si ya eres
+              cliente.
+            </p>
+            <div className="lg-hero-actions">
+              <Link to="/login" className="lg-btn lg-btn--primary">
+                Iniciar sesión
+              </Link>
+            </div>
+          </div>
+
+          <div className="lg-status-wrap" aria-hidden>
+            <div className="lg-status-card lg-glass lg-glass--strong">
+              <div className="lg-status-head">
+                <span>Resumen de seguridad</span>
+                <span className="lg-status-badge">
+                  <Check size={12} />
+                  Todo en orden
+                </span>
+              </div>
+              <div className="lg-status-big">
+                <b>0</b>
+                <span>alertas activas</span>
+              </div>
+              <div className="lg-status-stats">
+                <div>
+                  <span>Última conexión</span>
+                  <b>Hace 2 min</b>
+                </div>
+                <div>
+                  <span>Batería</span>
+                  <b>82%</b>
+                </div>
+              </div>
+            </div>
+
+            <div className="lg-float-card lg-float-card--a lg-glass lg-glass--strong">
+              <span className="lg-float-icon">
+                <PowerOff size={16} />
+              </span>
+              <div>
+                <b>Alerta atendida</b>
+                <span>Corte confirmado</span>
+              </div>
+            </div>
+
+            <div className="lg-float-card lg-float-card--b lg-glass lg-glass--strong">
+              <span className="lg-float-icon lg-float-icon--ok">
+                <Check size={16} />
+              </span>
+              <div>
+                <b>Moto de Carlos</b>
+                <span>En movimiento</span>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -365,8 +437,8 @@ export default function LandingPage() {
           </div>
           <div className="lg-footer-col">
             <h4>Legal</h4>
-            <a href="#">Política de privacidad</a>
-            <a href="#">Términos y condiciones</a>
+            <Link to="/privacidad">Política de privacidad</Link>
+            <Link to="/terminos">Términos y condiciones</Link>
           </div>
         </div>
         <p className="lg-footer-legal">
