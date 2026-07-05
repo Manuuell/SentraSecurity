@@ -6,6 +6,7 @@ import {
   Check,
   Gauge,
   History,
+  Instagram,
   LayoutDashboard,
   MapPin,
   PowerOff,
@@ -14,6 +15,19 @@ import {
   User,
 } from "lucide-react";
 import "../styles/landing.css";
+
+function WhatsAppIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.626.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M12.004 2C6.486 2 2 6.486 2 12.004c0 2.116.618 4.09 1.686 5.756L2 22l4.36-1.66a9.94 9.94 0 0 0 5.644 1.75h.004c5.518 0 10.004-4.486 10.004-10.004C22.012 6.568 17.526 2.082 12.004 2Zm0 18.184h-.003a8.16 8.16 0 0 1-4.166-1.14l-.298-.177-3.096 1.178.826-3.02-.194-.31a8.14 8.14 0 0 1-1.253-4.347c0-4.508 3.667-8.176 8.184-8.176 2.186 0 4.24.852 5.786 2.398a8.13 8.13 0 0 1 2.396 5.786c0 4.508-3.667 8.176-8.176 8.176Z"
+      />
+    </svg>
+  );
+}
 
 const INCLUDES = ["Corte de motor remoto", "Monitoreo en vivo, 24/7", "Web y app móvil"];
 
@@ -323,6 +337,20 @@ export default function LandingPage() {
             <p className="lg-footer-partner">
               En colaboración con <b>Sentra Labs</b>
             </p>
+            <div className="lg-footer-social">
+              <a
+                href="https://www.instagram.com/sentralabs.co/"
+                target="_blank"
+                rel="noreferrer"
+                className="lg-footer-social--instagram"
+                aria-label="Instagram"
+              >
+                <Instagram size={18} />
+              </a>
+              <a href="#" className="lg-footer-social--whatsapp" aria-label="WhatsApp">
+                <WhatsAppIcon size={18} />
+              </a>
+            </div>
           </div>
           <div className="lg-footer-col">
             <h4>Producto</h4>
