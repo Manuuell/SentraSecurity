@@ -4,6 +4,9 @@ import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import '../state/sentra_service.dart';
 import '../data/models/vehicle.dart';
+import '../ui/tokens.dart';
+import '../ui/vehicle_status.dart';
+import '../ui/widgets.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key, required this.vehicleId});
@@ -53,6 +56,9 @@ class _MapScreenState extends State<MapScreen> {
     final svc = context.watch<SentraService>();
     final vehicle = svc.vehicleById(widget.vehicleId);
     final pos = vehicle?.latLng;
+    final status = vehicle != null
+        ? statusFor(vehicle, svc.alertedVehicleIds)
+        : VehicleUiStatus.offline;
 
     if (_followVehicle && pos != null && pos != _lastPosition) {
       _lastPosition = pos;
@@ -61,27 +67,22 @@ class _MapScreenState extends State<MapScreen> {
       });
     }
 
-    final isMoving = vehicle?.isMoving ?? false;
-    final markerColor = (vehicle?.isOnline ?? false)
-        ? (isMoving ? const Color(0xFF4A90D9) : const Color(0xFF58CC02))
-        : const Color(0xFFBDBDBD);
-
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: Colors.white.withOpacity(0.95),
-        elevation: 0,
+        backgroundColor: AppColors.surface.withOpacity(0.95),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: Color(0xFF3C3C3C)),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
           onPressed: () => Navigator.pop(context),
         ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(vehicle?.name ?? '', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xFF3C3C3C))),
-            Text(isMoving ? 'En movimiento' : 'Detenida',
-                style: TextStyle(fontSize: 11, color: markerColor, fontWeight: FontWeight.w600)),
+            Text(vehicle?.name ?? '',
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: AppColors.text)),
+            Text(status.label,
+                style: TextStyle(fontSize: 11, color: status.color, fontWeight: FontWeight.w600)),
           ],
         ),
       ),
@@ -90,67 +91,59 @@ class _MapScreenState extends State<MapScreen> {
           FlutterMap(
             mapController: _mapCtrl,
             options: const MapOptions(
-              initialCenter: LatLng(10.391, -75.479),
-              initialZoom: 15,
+              initialCenter: LatLng(10.423, -75.545),
+              initialZoom: 14,
             ),
             children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.sentrasecurity.gps',
-              ),
+              sentraTiles(),
               if (_track.length > 1)
                 PolylineLayer(polylines: [
-                  Polyline(points: _track, strokeWidth: 4, color: const Color(0xFF4A90D9).withOpacity(0.7)),
+                  Polyline(points: _track, strokeWidth: 4, color: AppColors.primary.withOpacity(0.75)),
                 ]),
               if (pos != null)
                 MarkerLayer(markers: [
                   Marker(
                     point: pos,
                     width: 48, height: 48,
-                    child: Transform.rotate(
-                      angle: (vehicle?.course ?? 0) * 3.14159 / 180,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: markerColor,
-                          shape: BoxShape.circle,
-                          boxShadow: [BoxShadow(color: markerColor.withOpacity(0.4), blurRadius: 10, spreadRadius: 2)],
-                        ),
-                        child: const Icon(Icons.navigation, color: Colors.white, size: 24),
-                      ),
-                    ),
+                    child: VehicleMarkerDot(color: status.color, course: vehicle?.course ?? 0, size: 48),
                   ),
                 ]),
+              mapAttribution(),
             ],
           ),
+
+          // Controles del mapa
           Positioned(
             right: 14,
-            bottom: vehicle != null ? 220 : 180,
+            bottom: vehicle != null ? 210 : 120,
             child: Column(
               children: [
                 _MapFab(
-                  icon: _followVehicle ? Icons.gps_fixed : Icons.gps_not_fixed,
-                  color: _followVehicle ? const Color(0xFF4A90D9) : const Color(0xFF9E9E9E),
+                  icon: _followVehicle ? Icons.gps_fixed_rounded : Icons.gps_not_fixed_rounded,
+                  active: _followVehicle,
                   onTap: () => setState(() => _followVehicle = !_followVehicle),
                   tooltip: 'Seguir moto',
                 ),
                 const SizedBox(height: 10),
                 _MapFab(
-                  icon: _showingToday ? Icons.route : Icons.route_outlined,
-                  color: _showingToday ? const Color(0xFF4A90D9) : const Color(0xFF9E9E9E),
+                  icon: Icons.route_rounded,
+                  active: _showingToday,
                   onTap: _loadingTrack
                       ? null
                       : (_showingToday
                           ? () => setState(() { _track = []; _showingToday = false; })
                           : _loadTodayTrack),
-                  tooltip: 'Ruta de hoy',
+                  tooltip: 'Recorrido de hoy',
                 ),
               ],
             ),
           ),
+
           if (vehicle != null)
-            Positioned(left: 0, right: 0, bottom: 0, child: _TelPanel(vehicle: vehicle)),
+            Positioned(left: 0, right: 0, bottom: 0, child: _TelPanel(vehicle: vehicle, status: status)),
+
           if (_loadingTrack)
-            const Center(child: CircularProgressIndicator(color: Color(0xFF4A90D9))),
+            const Center(child: CircularProgressIndicator(color: AppColors.primary)),
         ],
       ),
     );
@@ -158,9 +151,9 @@ class _MapScreenState extends State<MapScreen> {
 }
 
 class _MapFab extends StatelessWidget {
-  const _MapFab({required this.icon, required this.color, required this.onTap, this.tooltip});
+  const _MapFab({required this.icon, required this.active, required this.onTap, this.tooltip});
   final IconData icon;
-  final Color color;
+  final bool active;
   final VoidCallback? onTap;
   final String? tooltip;
 
@@ -170,21 +163,23 @@ class _MapFab extends StatelessWidget {
     child: GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 44, height: 44,
+        width: 46, height: 46,
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 10)],
+          color: active ? AppColors.primary : AppColors.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: active ? AppColors.primary : AppColors.border),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 10)],
         ),
-        child: Icon(icon, color: color, size: 20),
+        child: Icon(icon, color: active ? Colors.white : AppColors.textSecondary, size: 20),
       ),
     ),
   );
 }
 
 class _TelPanel extends StatelessWidget {
-  const _TelPanel({required this.vehicle});
+  const _TelPanel({required this.vehicle, required this.status});
   final Vehicle vehicle;
+  final VehicleUiStatus status;
 
   @override
   Widget build(BuildContext context) {
@@ -195,29 +190,30 @@ class _TelPanel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 14, 20, 30),
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 20, offset: Offset(0, -4))],
+        border: Border(top: BorderSide(color: AppColors.border)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(width: 36, height: 4,
-              decoration: BoxDecoration(color: const Color(0xFFE0E0E0), borderRadius: BorderRadius.circular(2))),
+              decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2))),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _TelItem(icon: Icons.speed_rounded, label: 'Velocidad',
                   value: '${vehicle.speed.toStringAsFixed(0)} km/h',
-                  color: vehicle.speed > 80 ? const Color(0xFFE53935) : const Color(0xFF4A90D9)),
-              _TelItem(icon: Icons.power_settings_new_rounded, label: 'Motor',
-                  value: vehicle.ignitionOn ? 'ON' : 'OFF',
-                  color: vehicle.ignitionOn ? const Color(0xFF58CC02) : const Color(0xFFBDBDBD)),
-              _TelItem(icon: Icons.battery_charging_full_rounded, label: 'Batería',
+                  color: vehicle.speed > 80 ? AppColors.red : AppColors.primary),
+              _TelItem(icon: Icons.key_rounded, label: 'Encendido',
+                  value: vehicle.ignitionOn ? 'Sí' : 'No',
+                  color: vehicle.ignitionOn ? AppColors.green : AppColors.gray),
+              _TelItem(icon: Icons.battery_5_bar_rounded, label: 'Batería',
                   value: vehicle.batteryPct != null ? '${vehicle.batteryPct}%' : '—',
-                  color: (vehicle.batteryPct ?? 100) < 20 ? const Color(0xFFE53935) : const Color(0xFF58CC02)),
-              _TelItem(icon: Icons.access_time_rounded, label: 'Hora', value: hora, color: const Color(0xFF9E9E9E)),
+                  color: (vehicle.batteryPct ?? 100) < 20 ? AppColors.red : AppColors.green),
+              _TelItem(icon: Icons.schedule_rounded, label: 'Última señal', value: hora,
+                  color: AppColors.textSecondary),
             ],
           ),
         ],
@@ -235,14 +231,10 @@ class _TelItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Column(
     children: [
-      Container(
-        width: 36, height: 36,
-        decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-        child: Icon(icon, color: color, size: 18),
-      ),
+      SoftIconChip(icon: icon, color: color, size: 36),
       const SizedBox(height: 6),
       Text(value, style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 12)),
-      Text(label, style: const TextStyle(color: Color(0xFFBDBDBD), fontSize: 10)),
+      Text(label, style: const TextStyle(color: AppColors.textFaint, fontSize: 10)),
     ],
   );
 }

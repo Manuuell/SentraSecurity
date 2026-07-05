@@ -24,6 +24,10 @@ class SentraService extends ChangeNotifier {
   bool get authenticated => user != null;
   int get unacknowledgedCount => events.where((e) => !e.acknowledged).length;
 
+  /// Vehículos con alertas sin reconocer (para pintar estado "alerta").
+  Set<String> get alertedVehicleIds =>
+      events.where((e) => !e.acknowledged).map((e) => e.vehicleId).toSet();
+
   // ── WebSocket ────────────────────────────────────────────────
   WebSocketChannel? _ws;
   StreamSubscription? _wsSub;

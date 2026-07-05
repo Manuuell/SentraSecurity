@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../state/sentra_service.dart';
+import '../ui/tokens.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -40,7 +41,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 28),
@@ -49,21 +50,21 @@ class _LoginScreenState extends State<LoginScreen> {
             children: [
               const SizedBox(height: 60),
               Container(
-                width: 90,
-                height: 90,
+                width: 88,
+                height: 88,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF4A90D9).withOpacity(0.1),
-                  shape: BoxShape.circle,
+                  color: AppColors.primarySoft,
+                  borderRadius: BorderRadius.circular(24),
                 ),
-                child: const Icon(Icons.gps_fixed, color: Color(0xFF4A90D9), size: 46),
+                child: const Icon(Icons.verified_user_rounded, color: AppColors.primary, size: 44),
               ),
               const SizedBox(height: 20),
               const Text('SentraSecurity',
-                style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: Color(0xFF3C3C3C))),
+                style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: AppColors.text)),
               const SizedBox(height: 6),
-              const Text('Monitoreo GPS para tu moto',
-                style: TextStyle(fontSize: 14, color: Color(0xFF9E9E9E))),
-              const SizedBox(height: 48),
+              const Text('Tu moto, siempre a la vista',
+                style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+              const SizedBox(height: 44),
 
               _InputField(
                 controller: _emailCtrl,
@@ -78,9 +79,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 label: 'Contraseña',
                 icon: Icons.lock_outline,
                 obscure: _obscure,
+                onSubmitted: (_) => _login(),
                 suffix: IconButton(
                   icon: Icon(_obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                      color: const Color(0xFF9E9E9E), size: 20),
+                      color: AppColors.textFaint, size: 20),
                   onPressed: () => setState(() => _obscure = !_obscure),
                 ),
               ),
@@ -91,13 +93,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFEBEE),
+                    color: AppColors.redSoft,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(children: [
-                    const Icon(Icons.error_outline, color: Color(0xFFE53935), size: 18),
+                    const Icon(Icons.error_outline, color: AppColors.red, size: 18),
                     const SizedBox(width: 8),
-                    Text(_error!, style: const TextStyle(color: Color(0xFFE53935), fontSize: 13)),
+                    Expanded(child: Text(_error!, style: const TextStyle(color: AppColors.red, fontSize: 13))),
                   ]),
                 ),
               ],
@@ -107,14 +109,12 @@ class _LoginScreenState extends State<LoginScreen> {
               SizedBox(
                 width: double.infinity,
                 height: 52,
-                child: ElevatedButton(
+                child: FilledButton(
                   onPressed: _loading ? null : _login,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF58CC02),
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: const Color(0xFFAFE07A),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    disabledBackgroundColor: AppColors.primary.withOpacity(0.5),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    elevation: 0,
                   ),
                   child: _loading
                       ? const SizedBox(width: 22, height: 22,
@@ -126,7 +126,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
               const SizedBox(height: 40),
               const Text('Cartagena de Indias · Colombia',
-                style: TextStyle(color: Color(0xFFBDBDBD), fontSize: 12)),
+                style: TextStyle(color: AppColors.textFaint, fontSize: 12)),
               const SizedBox(height: 20),
             ],
           ),
@@ -144,6 +144,7 @@ class _InputField extends StatelessWidget {
     this.obscure = false,
     this.suffix,
     this.keyboardType,
+    this.onSubmitted,
   });
   final TextEditingController controller;
   final String label;
@@ -151,24 +152,26 @@ class _InputField extends StatelessWidget {
   final bool obscure;
   final Widget? suffix;
   final TextInputType? keyboardType;
+  final ValueChanged<String>? onSubmitted;
 
   @override
   Widget build(BuildContext context) => TextField(
     controller: controller,
     obscureText: obscure,
     keyboardType: keyboardType,
-    style: const TextStyle(fontSize: 15, color: Color(0xFF3C3C3C)),
+    onSubmitted: onSubmitted,
+    style: const TextStyle(fontSize: 15, color: AppColors.text),
     decoration: InputDecoration(
       labelText: label,
-      labelStyle: const TextStyle(color: Color(0xFF9E9E9E), fontSize: 14),
-      prefixIcon: Icon(icon, color: const Color(0xFF9E9E9E), size: 20),
+      labelStyle: const TextStyle(color: AppColors.textFaint, fontSize: 14),
+      prefixIcon: Icon(icon, color: AppColors.textFaint, size: 20),
       suffixIcon: suffix,
       filled: true,
-      fillColor: const Color(0xFFF7F8FA),
+      fillColor: AppColors.bg,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFF4A90D9), width: 1.5),
+        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
       ),
       contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
     ),

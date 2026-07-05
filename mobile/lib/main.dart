@@ -4,6 +4,7 @@ import 'package:timeago/timeago.dart' as timeago;
 import 'state/sentra_service.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_shell.dart';
+import 'ui/tokens.dart';
 
 void main() {
   timeago.setLocaleMessages('es', timeago.EsMessages());
@@ -25,17 +26,34 @@ class SentraApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF4A90D9),
+          seedColor: AppColors.primary,
           brightness: Brightness.light,
         ),
         useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFFF7F8FA),
+        scaffoldBackgroundColor: AppColors.bg,
         fontFamily: 'Roboto',
         appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.white,
-          foregroundColor: Color(0xFF3C3C3C),
+          backgroundColor: AppColors.surface,
+          foregroundColor: AppColors.text,
           elevation: 0,
           surfaceTintColor: Colors.transparent,
+        ),
+        navigationBarTheme: NavigationBarThemeData(
+          backgroundColor: AppColors.surface,
+          surfaceTintColor: Colors.transparent,
+          indicatorColor: AppColors.primarySoft,
+          height: 68,
+          labelTextStyle: WidgetStatePropertyAll(
+            const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+          ),
+          iconTheme: WidgetStateProperty.resolveWith(
+            (states) => IconThemeData(
+              size: 24,
+              color: states.contains(WidgetState.selected)
+                  ? AppColors.primary
+                  : AppColors.textFaint,
+            ),
+          ),
         ),
       ),
       home: const RootGate(),
@@ -89,27 +107,30 @@ class _Splash extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 90,
-                height: 90,
+                width: 88,
+                height: 88,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF4A90D9).withOpacity(0.1),
-                  shape: BoxShape.circle,
+                  color: AppColors.primarySoft,
+                  borderRadius: BorderRadius.circular(24),
                 ),
-                child: const Icon(Icons.gps_fixed, color: Color(0xFF4A90D9), size: 46),
+                child: const Icon(Icons.verified_user_rounded, color: AppColors.primary, size: 44),
               ),
               const SizedBox(height: 20),
               const Text('SentraSecurity',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Color(0xFF3C3C3C))),
-              const SizedBox(height: 20),
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.text)),
+              const SizedBox(height: 4),
+              const Text('Monitoreo GPS · Cartagena',
+                  style: TextStyle(fontSize: 13, color: AppColors.textFaint)),
+              const SizedBox(height: 24),
               const SizedBox(
                 width: 22, height: 22,
-                child: CircularProgressIndicator(color: Color(0xFF4A90D9), strokeWidth: 2.5),
+                child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2.5),
               ),
             ],
           ),
