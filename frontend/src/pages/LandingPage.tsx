@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import {
   BatteryMedium,
   Bell,
+  Bike,
   Check,
   Gauge,
   History,
@@ -10,6 +11,7 @@ import {
   PowerOff,
   Route,
   Smartphone,
+  User,
 } from "lucide-react";
 import "../styles/landing.css";
 
@@ -173,7 +175,7 @@ export default function LandingPage() {
         </div>
         <div className="lg-grid">
           {FEATURES.map((f) => (
-            <div key={f.title} className="lg-card lg-glass">
+            <div key={f.title} className="lg-card">
               <div className="lg-card-icon">
                 <f.icon size={20} />
               </div>
@@ -181,6 +183,100 @@ export default function LandingPage() {
               <p>{f.text}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      <section className="lg-section">
+        <div className="lg-app-section">
+          <div>
+            <span className="lg-eyebrow">App móvil</span>
+            <h2 className="lg-h2">Todo el control, desde el bolsillo</h2>
+            <p className="lg-lead">
+              La misma plataforma en tu celular: mapa en vivo, alertas push y corte de
+              motor con un botón, sin depender de la web.
+            </p>
+            <ul className="lg-hero-includes">
+              <li>
+                <span className="lg-check">
+                  <Check size={13} />
+                </span>
+                Mapa en vivo y notificaciones push
+              </li>
+              <li>
+                <span className="lg-check">
+                  <Check size={13} />
+                </span>
+                Corte y restauración de motor con confirmación
+              </li>
+              <li>
+                <span className="lg-check">
+                  <Check size={13} />
+                </span>
+                Historial de recorridos y alertas
+              </li>
+            </ul>
+          </div>
+
+          <div className="lg-phone-wrap" aria-hidden>
+            <div className="lg-phone">
+              <div className="lg-phone-notch" />
+              <div className="lg-phone-screen">
+                <div className="lg-phone-header">
+                  <div>
+                    <b>Moto de Carlos</b>
+                    <span>ABC-123 · En línea</span>
+                  </div>
+                  <span className="lg-dot" />
+                </div>
+                <div className="lg-phone-map">
+                  <div className="lg-phone-map-grid" />
+                  <span className="lg-phone-map-pin">
+                    <MapPin size={16} />
+                  </span>
+                </div>
+                <div className="lg-phone-stats">
+                  <div>
+                    <Gauge size={14} />
+                    <b>0</b>
+                    <small>km/h</small>
+                  </div>
+                  <div>
+                    <BatteryMedium size={14} />
+                    <b>82%</b>
+                    <small>Batería</small>
+                  </div>
+                  <div>
+                    <Route size={14} />
+                    <b>12.4</b>
+                    <small>km hoy</small>
+                  </div>
+                </div>
+                <div className="lg-phone-cut-btn">
+                  <PowerOff size={16} />
+                  Cortar motor
+                </div>
+                <p className="lg-phone-cut-hint">Se pedirá confirmación antes de ejecutar</p>
+                <div className="lg-phone-tabbar">
+                  <span className="active">
+                    <Bike size={16} />
+                    Motos
+                  </span>
+                  <span>
+                    <MapPin size={16} />
+                    Mapa
+                  </span>
+                  <span>
+                    <Bell size={16} />
+                    Alertas
+                  </span>
+                  <span>
+                    <User size={16} />
+                    Perfil
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -218,19 +314,36 @@ export default function LandingPage() {
 
       <footer className="lg-footer">
         <div className="lg-footer-inner">
-          <div className="lg-footer-brand">
-            <img src="/logo-mark.png" alt="SentraSecurity" />
-            <span style={{ fontWeight: 700, fontSize: 13.5 }}>SentraSecurity</span>
-            <span className="lg-footer-divider" aria-hidden />
-            <span className="lg-footer-partner">
+          <div className="lg-footer-col lg-footer-col--brand">
+            <div className="lg-footer-brand">
+              <img src="/logo-mark.png" alt="SentraSecurity" />
+              <span>SentraSecurity</span>
+            </div>
+            <p>Monitoreo GPS y corte remoto de motor para motos, en Cartagena de Indias.</p>
+            <p className="lg-footer-partner">
               En colaboración con <b>Sentra Labs</b>
-            </span>
+            </p>
           </div>
-          <p className="lg-footer-legal">
-            © {new Date().getFullYear()} SentraSecurity · Monitoreo GPS · Cartagena de
-            Indias
-          </p>
+          <div className="lg-footer-col">
+            <h4>Producto</h4>
+            <a href="#plataforma">Plataforma</a>
+            <a href="#como-funciona">Cómo funciona</a>
+            <Link to="/login">Iniciar sesión</Link>
+          </div>
+          <div className="lg-footer-col">
+            <h4>Contacto</h4>
+            <a href="mailto:contacto@sentrasecurity.co">contacto@sentrasecurity.co</a>
+            <span>Cartagena de Indias, Colombia</span>
+          </div>
+          <div className="lg-footer-col">
+            <h4>Legal</h4>
+            <a href="#">Política de privacidad</a>
+            <a href="#">Términos y condiciones</a>
+          </div>
         </div>
+        <p className="lg-footer-legal">
+          © {new Date().getFullYear()} SentraSecurity · Monitoreo GPS · Cartagena de Indias
+        </p>
       </footer>
     </div>
   );
