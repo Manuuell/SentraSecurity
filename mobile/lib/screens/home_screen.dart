@@ -103,11 +103,12 @@ class _BrandMark extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         width: 40,
         height: 40,
+        padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
           color: AppColors.primarySoft,
           borderRadius: BorderRadius.circular(12),
         ),
-        child: const Icon(Icons.verified_user_rounded, color: AppColors.primary, size: 24),
+        child: Image.asset('assets/images/logo_mark.png', fit: BoxFit.contain),
       );
 }
 

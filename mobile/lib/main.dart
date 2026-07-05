@@ -126,19 +126,8 @@ class _Splash extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 88,
-                height: 88,
-                decoration: BoxDecoration(
-                  color: AppColors.primarySoft,
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: const Icon(Icons.verified_user_rounded, color: AppColors.primary, size: 44),
-              ),
-              const SizedBox(height: 20),
-              const Text('SentraSecurity',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.text)),
-              const SizedBox(height: 4),
+              Image.asset('assets/images/logo_full.png', width: 220),
+              const SizedBox(height: 12),
               const Text('Monitoreo GPS · Cartagena',
                   style: TextStyle(fontSize: 13, color: AppColors.textFaint)),
               const SizedBox(height: 24),

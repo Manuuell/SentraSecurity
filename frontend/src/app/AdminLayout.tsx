@@ -6,7 +6,6 @@ import {
   LogOut,
   MapPin,
   Radio,
-  ShieldCheck,
   Smartphone,
   Users,
 } from "lucide-react";
@@ -51,7 +50,7 @@ export function AdminLayout() {
       <aside className="admin-nav">
         <Group gap={10} px="md" py="lg" wrap="nowrap">
           <div className="admin-logo">
-            <ShieldCheck size={20} color="var(--accent)" />
+            <img src="/logo-mark.png" alt="SentraSecurity" width={20} height={20} />
           </div>
           <div>
             <Text fw={800} fz={15} lh={1.2}>

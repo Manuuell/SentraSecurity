@@ -8,7 +8,7 @@ import {
   Text,
   TextInput,
 } from "@mantine/core";
-import { AlertCircle, ShieldCheck } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { isAxiosError } from "axios";
 import { useAuth } from "../auth/AuthProvider";
 
@@ -58,26 +58,10 @@ export default function LoginPage() {
       >
         <Stack gap="lg">
           <Stack gap={10} align="center">
-            <div
-              style={{
-                width: 56,
-                height: 56,
-                borderRadius: 16,
-                background: "var(--accent-soft)",
-                display: "grid",
-                placeItems: "center",
-              }}
-            >
-              <ShieldCheck size={30} color="var(--accent)" />
-            </div>
-            <div style={{ textAlign: "center" }}>
-              <Text fw={800} fz={22} lh={1.2}>
-                SentraSecurity
-              </Text>
-              <Text fz={13} c="dimmed" mt={4}>
-                Monitoreo GPS · Cartagena de Indias
-              </Text>
-            </div>
+            <img src="/logo-full.png" alt="SentraSecurity" style={{ width: 260 }} />
+            <Text fz={13} c="dimmed">
+              Monitoreo GPS · Cartagena de Indias
+            </Text>
           </Stack>
 
           <form onSubmit={submit}>

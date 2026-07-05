@@ -1,6 +1,6 @@
 import React, { Suspense, lazy, type ReactNode } from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Loader, MantineProvider } from "@mantine/core";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "@mantine/core/styles.css";
@@ -8,6 +8,7 @@ import "leaflet/dist/leaflet.css";
 import "./styles/index.css";
 import { theme } from "./styles/theme";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
+import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import LiveMapPage from "./pages/LiveMapPage";
 import { AdminLayout } from "./app/AdminLayout";
@@ -38,12 +39,28 @@ function CenteredLoader() {
   );
 }
 
-/** Muestra login mientras no haya sesión; splash durante el refresh inicial. */
+/** Splash durante el refresh inicial de sesión; luego deja pasar al router. */
 function AuthGate({ children }: { children: ReactNode }) {
-  const { user, loading } = useAuth();
+  const { loading } = useAuth();
   if (loading) return <CenteredLoader />;
-  if (!user) return <LoginPage />;
   return <>{children}</>;
+}
+
+/** Requiere sesión; si no hay, manda a /login. Usado por las rutas internas. */
+function RequireAuth({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
+function HomeRoute() {
+  const { user } = useAuth();
+  return user ? <LiveMapPage /> : <LandingPage />;
+}
+
+function LoginRoute() {
+  const { user } = useAuth();
+  return user ? <Navigate to="/" replace /> : <LoginPage />;
 }
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
@@ -55,8 +72,16 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             <BrowserRouter>
               <Suspense fallback={<CenteredLoader />}>
                 <Routes>
-                  <Route path="/" element={<LiveMapPage />} />
-                  <Route path="/admin" element={<AdminLayout />}>
+                  <Route path="/" element={<HomeRoute />} />
+                  <Route path="/login" element={<LoginRoute />} />
+                  <Route
+                    path="/admin"
+                    element={
+                      <RequireAuth>
+                        <AdminLayout />
+                      </RequireAuth>
+                    }
+                  >
                     <Route index element={<DashboardPage />} />
                     <Route path="devices" element={<DevicesPage />} />
                     <Route path="devices/:id" element={<DeviceDetailPage />} />

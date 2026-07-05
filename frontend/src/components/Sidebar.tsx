@@ -10,7 +10,7 @@ import {
   TextInput,
   Tooltip,
 } from "@mantine/core";
-import { LogOut, Search, ShieldCheck } from "lucide-react";
+import { LogOut, Search } from "lucide-react";
 import { useAuth } from "../auth/AuthProvider";
 import type { Vehicle } from "../types";
 import { vehicleStatus } from "../lib/status";
@@ -72,7 +72,7 @@ export function Sidebar({
             flexShrink: 0,
           }}
         >
-          <ShieldCheck size={20} color="var(--accent)" />
+          <img src="/logo-mark.png" alt="SentraSecurity" width={20} height={20} />
         </div>
         <div>
           <Text fw={800} fz={15} lh={1.2}>
