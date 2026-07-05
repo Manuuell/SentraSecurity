@@ -236,21 +236,6 @@
   margin-top: 34px;
   flex-wrap: wrap;
 }
-.lg-hero-stats {
-  display: flex;
-  gap: 28px;
-  margin-top: 44px;
-  flex-wrap: wrap;
-}
-.lg-hero-stat b {
-  display: block;
-  font-size: 24px;
-  font-weight: 800;
-}
-.lg-hero-stat span {
-  font-size: 13px;
-  color: var(--lg-text-faint);
-}
 
 /* Mock de mapa decorativo en el hero */
 .lg-mock {

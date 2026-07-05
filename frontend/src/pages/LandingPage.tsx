@@ -82,7 +82,6 @@ export default function LandingPage() {
 
       <header className="lg-section lg-hero">
         <div>
-          <span className="lg-eyebrow">GPS antirrobo · Cartagena de Indias</span>
           <h1 className="lg-h1">Tu moto, siempre a la vista.</h1>
           <p className="lg-lead">
             SentraSecurity monitorea tu moto en tiempo real y te deja cortar el motor a
@@ -95,20 +94,6 @@ export default function LandingPage() {
             <a href="#plataforma" className="lg-btn lg-btn--ghost">
               Conoce la plataforma
             </a>
-          </div>
-          <div className="lg-hero-stats">
-            <div className="lg-hero-stat">
-              <b>&lt;3 s</b>
-              <span>Latencia de posición</span>
-            </div>
-            <div className="lg-hero-stat">
-              <b>24/7</b>
-              <span>Monitoreo continuo</span>
-            </div>
-            <div className="lg-hero-stat">
-              <b>Web + App</b>
-              <span>Desde cualquier lugar</span>
-            </div>
           </div>
         </div>
 
