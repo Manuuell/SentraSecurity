@@ -34,18 +34,19 @@
   text-decoration: none;
 }
 
-/* ── Fondo: blobs de color muy sutiles detrás del vidrio (fondo blanco) ─ */
+/* ── Fondo: degradado suave + blobs de color animados detrás del vidrio ── */
 .lg-bg {
   position: fixed;
   inset: 0;
   z-index: -1;
   overflow: hidden;
-  background: #ffffff;
+  background: linear-gradient(155deg, #eafcfb 0%, #ffffff 30%, #ffffff 58%, #eef5ff 100%);
 }
 .lg-blob {
   position: absolute;
   border-radius: 50%;
   filter: blur(100px);
+  animation: lg-blob-float 24s ease-in-out infinite;
 }
 .lg-blob--cyan-1 {
   width: 640px;
@@ -53,7 +54,8 @@
   top: -220px;
   right: -160px;
   background: radial-gradient(circle, var(--lg-cyan), transparent 70%);
-  opacity: 0.16;
+  opacity: 0.26;
+  animation-duration: 22s;
 }
 .lg-blob--cyan-2 {
   width: 480px;
@@ -61,7 +63,9 @@
   top: 55%;
   left: -180px;
   background: radial-gradient(circle, var(--lg-cyan-dim), transparent 70%);
-  opacity: 0.12;
+  opacity: 0.2;
+  animation-duration: 28s;
+  animation-delay: -9s;
 }
 .lg-blob--navy {
   width: 720px;
@@ -69,12 +73,28 @@
   bottom: -320px;
   right: -120px;
   background: radial-gradient(circle, var(--lg-navy-700), transparent 70%);
-  opacity: 0.07;
+  opacity: 0.16;
+  animation-duration: 32s;
+  animation-delay: -18s;
+}
+
+@keyframes lg-blob-float {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(-5%, 6%) scale(1.1);
+  }
+  66% {
+    transform: translate(4%, -5%) scale(0.94);
+  }
 }
 
 /* ── Vidrio base ──────────────────────────────────────────────────── */
 .lg-glass {
   position: relative;
+  overflow: hidden;
   background: var(--lg-glass-bg);
   border: 1px solid var(--lg-glass-border);
   backdrop-filter: blur(26px) saturate(160%);
@@ -84,6 +104,7 @@
     inset 0 1px 0 var(--lg-glass-highlight),
     0 1px 2px rgba(15, 23, 42, 0.04),
     0 24px 48px -24px rgba(15, 23, 42, 0.16);
+  transition: box-shadow 0.35s ease, border-color 0.35s ease;
 }
 .lg-glass::before {
   content: "";
@@ -92,6 +113,25 @@
   border-radius: inherit;
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.5), transparent 45%);
   pointer-events: none;
+}
+/* Brillo líquido: banda diagonal que barre la superficie de vidrio al pasar
+   el mouse, reforzando la sensación de "liquid glass" en la interacción. */
+.lg-glass::after {
+  content: "";
+  position: absolute;
+  inset: -20% -60%;
+  background: linear-gradient(
+    115deg,
+    transparent 42%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 58%
+  );
+  transform: translateX(-45%);
+  transition: transform 0.9s ease;
+  pointer-events: none;
+}
+.lg-glass:hover::after {
+  transform: translateX(45%);
 }
 .lg-glass--strong {
   background: var(--lg-glass-bg-strong);
@@ -106,30 +146,40 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 14px clamp(20px, 5vw, 64px);
+  padding: clamp(18px, 2.6vw, 28px) clamp(20px, 5vw, 64px);
   background: rgba(255, 255, 255, 0.72);
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
   border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+  animation: lg-fade-down 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .lg-nav-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: clamp(8px, 2vw, 14px);
 }
 .lg-nav-brand img {
-  height: 28px;
+  height: clamp(30px, 6vw, 40px);
   width: auto;
+}
+.lg-nav-brand-text {
+  font-weight: 800;
+  font-size: clamp(15px, 4vw, 20px);
+  white-space: nowrap;
 }
 .lg-nav-links {
   display: flex;
   align-items: center;
-  gap: 28px;
-  font-size: 14px;
+  gap: 32px;
+  font-size: 15.5px;
   color: var(--lg-text-dim);
 }
 .lg-nav-links a:hover {
   color: var(--lg-text);
+}
+.lg-nav .lg-btn {
+  padding: clamp(9px, 1.6vw, 12px) clamp(16px, 3vw, 24px);
+  font-size: clamp(13.5px, 2vw, 15px);
 }
 
 /* ── Botones ──────────────────────────────────────────────────────── */
@@ -167,11 +217,6 @@
 }
 .lg-btn--ghost:hover {
   background: var(--lg-glass-bg-strong);
-}
-.lg-btn--sm {
-  padding: 9px 18px;
-  font-size: 13.5px;
-  border-radius: 12px;
 }
 
 /* ── Layout general ───────────────────────────────────────────────── */
@@ -230,11 +275,65 @@
   align-items: center;
   padding-top: clamp(48px, 8vw, 88px);
 }
+.lg-hero > div:first-child {
+  animation: lg-fade-up 0.7s 0.05s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.lg-hero-visual {
+  animation: lg-fade-up 0.8s 0.16s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes lg-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes lg-fade-down {
+  from {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 .lg-hero-actions {
   display: flex;
   gap: 14px;
   margin-top: 34px;
   flex-wrap: wrap;
+}
+.lg-hero-includes {
+  list-style: none;
+  margin: 36px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.lg-hero-includes li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--lg-text-dim);
+}
+.lg-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(0, 184, 183, 0.12);
+  color: var(--lg-cyan);
+  flex-shrink: 0;
 }
 
 /* Mock de mapa decorativo en el hero */
@@ -262,32 +361,61 @@
   position: absolute;
   inset: 0;
 }
-.lg-mock-pin {
-  position: absolute;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--lg-cyan);
-  box-shadow: 0 0 0 6px rgba(0, 253, 252, 0.18), 0 0 24px 4px rgba(0, 253, 252, 0.55);
+
+/* Recorrido: la línea punteada tenue (#lg-route-d, en el JSX) es el trazo
+   completo; esta se dibuja encima en cian sólido para simular el avance en
+   vivo, y el marcador viaja sobre el mismo path — ambos con la misma
+   duración/curva para que se vean sincronizados. */
+.lg-mock-route-progress {
+  fill: none;
+  stroke-dasharray: 500;
+  stroke-dashoffset: 500;
+  animation: lg-route-draw 7s linear infinite;
 }
-.lg-mock-pin::after {
-  content: "";
-  position: absolute;
-  inset: -10px;
-  border-radius: 50%;
-  border: 2px solid rgba(0, 253, 252, 0.5);
-  animation: lg-pulse 2.4s ease-out infinite;
+.lg-mock-marker,
+.lg-mock-marker-ring {
+  offset-path: url(#lg-route-d);
+  offset-rotate: 0deg;
+  animation: lg-marker-move 7s linear infinite;
 }
-@keyframes lg-pulse {
+.lg-mock-marker {
+  filter: drop-shadow(0 0 6px rgba(0, 253, 252, 0.9));
+}
+.lg-mock-marker-ring {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: lg-marker-move 7s linear infinite, lg-ring-pulse 1.8s ease-out infinite;
+}
+
+@keyframes lg-route-draw {
   0% {
-    transform: scale(0.6);
-    opacity: 0.9;
+    stroke-dashoffset: 500;
+  }
+  65%,
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes lg-marker-move {
+  0% {
+    offset-distance: 0%;
+  }
+  65%,
+  100% {
+    offset-distance: 100%;
+  }
+}
+@keyframes lg-ring-pulse {
+  0% {
+    transform: scale(0.7);
+    opacity: 0.8;
   }
   100% {
     transform: scale(2.4);
     opacity: 0;
   }
 }
+
 .lg-mock-card {
   position: absolute;
   left: 16px;
@@ -295,6 +423,11 @@
   bottom: 16px;
   padding: 14px 16px;
   border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.lg-mock-card-head {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -311,14 +444,54 @@
   font-size: 13.5px;
   display: block;
 }
-.lg-mock-card span {
+.lg-mock-card-head span {
   font-size: 11.5px;
   color: var(--lg-text-faint);
 }
+.lg-mock-card-stats {
+  display: flex;
+  gap: 14px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+.lg-mock-card-stats span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--lg-text-dim);
+}
+.lg-mock-card-stats svg {
+  color: var(--lg-cyan);
+  flex-shrink: 0;
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .lg-mock-pin::after {
+  .lg-mock-route-progress,
+  .lg-mock-marker,
+  .lg-mock-marker-ring,
+  .lg-blob,
+  .lg-nav,
+  .lg-hero > div:first-child,
+  .lg-hero-visual {
     animation: none;
+  }
+  .lg-mock-route-progress {
+    stroke-dashoffset: 0;
+  }
+  .lg-mock-marker,
+  .lg-mock-marker-ring {
+    offset-distance: 100%;
+  }
+  .lg-nav,
+  .lg-hero > div:first-child,
+  .lg-hero-visual {
+    opacity: 1;
+    transform: none;
+  }
+  .lg-glass::after {
+    transition: none;
   }
 }
 

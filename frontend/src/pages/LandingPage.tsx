@@ -1,13 +1,19 @@
 import { Link } from "react-router-dom";
 import {
+  BatteryMedium,
   Bell,
+  Check,
+  Gauge,
   History,
   LayoutDashboard,
   MapPin,
   PowerOff,
+  Route,
   Smartphone,
 } from "lucide-react";
 import "../styles/landing.css";
+
+const INCLUDES = ["Corte de motor remoto", "Monitoreo en vivo, 24/7", "Web y app móvil"];
 
 const FEATURES = [
   {
@@ -69,13 +75,13 @@ export default function LandingPage() {
       <nav className="lg-nav">
         <div className="lg-nav-brand">
           <img src="/logo-mark.png" alt="SentraSecurity" />
-          <span style={{ fontWeight: 800, fontSize: 15 }}>SentraSecurity</span>
+          <span className="lg-nav-brand-text">SentraSecurity</span>
         </div>
         <div className="lg-nav-links">
           <a href="#plataforma">Plataforma</a>
           <a href="#como-funciona">Cómo funciona</a>
         </div>
-        <Link to="/login" className="lg-btn lg-btn--primary lg-btn--sm">
+        <Link to="/login" className="lg-btn lg-btn--primary">
           Iniciar sesión
         </Link>
       </nav>
@@ -95,6 +101,16 @@ export default function LandingPage() {
               Conoce la plataforma
             </a>
           </div>
+          <ul className="lg-hero-includes">
+            {INCLUDES.map((item) => (
+              <li key={item}>
+                <span className="lg-check">
+                  <Check size={13} />
+                </span>
+                {item}
+              </li>
+            ))}
+          </ul>
         </div>
 
         <div className="lg-hero-visual lg-glass lg-mock" aria-hidden>
@@ -102,22 +118,41 @@ export default function LandingPage() {
             <div className="lg-mock-grid" />
             <svg className="lg-mock-route" viewBox="0 0 300 340" fill="none">
               <path
+                id="lg-route-d"
                 d="M40 60 C 90 90, 70 140, 130 160 S 220 180, 200 240 S 150 300, 190 320"
-                stroke="rgba(0,253,252,0.55)"
+                stroke="rgba(0,253,252,0.28)"
                 strokeWidth="3"
                 strokeLinecap="round"
                 strokeDasharray="1 14"
               />
+              <path
+                className="lg-mock-route-progress"
+                d="M40 60 C 90 90, 70 140, 130 160 S 220 180, 200 240 S 150 300, 190 320"
+                stroke="#00fdfc"
+                strokeWidth="3"
+                strokeLinecap="round"
+              />
+              <circle className="lg-mock-marker-ring" r="7" fill="none" stroke="#00fdfc" strokeWidth="2" />
+              <circle className="lg-mock-marker" r="6" fill="#00fdfc" />
             </svg>
-            <div className="lg-mock-pin" style={{ left: "62%", top: "46%" }} />
-            <div
-              className="lg-mock-card lg-glass lg-glass--strong"
-              style={{ boxShadow: "none" }}
-            >
-              <span className="lg-dot" />
-              <div>
-                <b>Moto de Carlos</b>
-                <span>En movimiento · 38 km/h</span>
+            <div className="lg-mock-card lg-glass lg-glass--strong" style={{ boxShadow: "none" }}>
+              <div className="lg-mock-card-head">
+                <span className="lg-dot" />
+                <div>
+                  <b>Moto de Carlos</b>
+                  <span>En movimiento</span>
+                </div>
+              </div>
+              <div className="lg-mock-card-stats">
+                <span>
+                  <Gauge size={13} /> 38 km/h
+                </span>
+                <span>
+                  <BatteryMedium size={13} /> 82%
+                </span>
+                <span>
+                  <Route size={13} /> 4.2 km
+                </span>
               </div>
             </div>
           </div>
