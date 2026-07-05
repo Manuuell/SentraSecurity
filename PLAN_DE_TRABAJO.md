@@ -525,7 +525,7 @@ Cada fase cierra solo si: (a) su checklist está completo, (b) los tests de las 
 
 | # | Riesgo | Prob. | Impacto | Mitigación |
 |---|---|---|---|---|
-| R1 | El corte de motor falla en la práctica (relé mal cableado, SMS lentos/costosos del operador, gateway SMS poco fiable). El comando SMS `940/941` ya está confirmado en la doc oficial ([docs/protocolo-st907l.md](docs/protocolo-st907l.md)) — el riesgo bajó de "¿existe?" a "¿opera bien?" | Baja-media | Alto (feature crítica) | Spike semana 1 con hardware real: validar relé, medir latencia, elegir gateway (módem GSM local preferido); si el relé no responde, renegociar alcance antes de la Fase 3 |
+| R1 | ~~El corte de motor falla en la práctica~~ **Resuelto (2026-07-05)**: `940`/`941` probados con hardware real (banco de pruebas) — clic del relé y `SET OK` confirmados en ambos sentidos. Ver [docs/corte-motor.md](docs/corte-motor.md). Riesgo residual bajo: falta validar el corte de arranque ya instalado en la moto, y falta elegir/montar el gateway SMS automatizado | Baja | Medio | Instalar en moto y repetir la prueba de arranque real; decidir gateway (módem GSM local vs. API operador) antes de automatizar el envío |
 | R2 | Secretos ya expuestos fueron comprometidos (llave SSH, contraseña personal) | Media | Crítico | Rotación inmediata (Fase 0) + revisar accesos/logs de la VM y actividad de la cuenta de correo |
 | R3 | Firmware del ST-907L con variaciones de protocolo (tramas no contempladas) | Media | Medio | Log de tramas crudas + parser tolerante + fixtures de tramas reales |
 | R4 | Migración de la app móvil se atrasa y obliga a mantener Traccar vivo más tiempo | Media | Medio | Traccar sigue operativo hasta el corte (híbrido acotado); la API propia se diseña sin depender de su apagado |
