@@ -365,12 +365,11 @@
 /* Mock de mapa decorativo en el hero */
 .lg-mock {
   width: 100%;
-  padding: 18px;
   aspect-ratio: 4 / 4.6;
 }
 .lg-mock-screen {
-  position: relative;
-  height: 100%;
+  position: absolute;
+  inset: 18px;
   border-radius: 20px;
   overflow: hidden;
   background: linear-gradient(160deg, #0a1f5c, #04123f 60%);
