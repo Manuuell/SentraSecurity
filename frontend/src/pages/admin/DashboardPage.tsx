@@ -82,7 +82,7 @@ export default function DashboardPage() {
   return (
     <Stack gap="lg">
       <SimpleGrid cols={{ base: 2, md: 4 }} spacing="md">
-        <StatCard icon={Bike} label="Motos totales" value={stats.total} color="#2563eb" />
+        <StatCard icon={Bike} label="Motos totales" value={stats.total} color="#00b8b7" />
         <StatCard icon={SignalHigh} label="En línea" value={stats.online} color="#16a34a" />
         <StatCard icon={SignalZero} label="Sin señal" value={stats.offline} color="#9ca3af" />
         <StatCard icon={Bell} label="Alertas sin reconocer" value={stats.unacked} color="#dc2626" />
@@ -93,7 +93,7 @@ export default function DashboardPage() {
           <Text fw={700} fz={15}>
             Alertas recientes
           </Text>
-          <Text component={Link} to="/" fz={13} c="blue" fw={600} style={{ textDecoration: "none" }}>
+          <Text component={Link} to="/" fz={13} fw={600} style={{ textDecoration: "none", color: "#058a89" }}>
             Ver en el mapa →
           </Text>
         </Group>

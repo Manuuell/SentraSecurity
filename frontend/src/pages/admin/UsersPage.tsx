@@ -195,7 +195,7 @@ function CreateUserModal({ opened, onClose }: { opened: boolean; onClose: () => 
   };
 
   return (
-    <Modal opened={opened} onClose={onClose} title="Nuevo usuario" centered radius="lg">
+    <Modal opened={opened} onClose={onClose} title="Nuevo usuario" centered radius="lg" className="ad-modal">
       <Stack gap="sm">
         <TextInput
           label="Correo electrónico"

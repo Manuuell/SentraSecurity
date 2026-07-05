@@ -86,13 +86,60 @@ body {
   }
 }
 
-/* ── Panel de administración ────────────────────────────────── */
+/* ── Panel de administración — estética "liquid glass" ──────────
+   Mismo lenguaje visual que la landing: fondo blanco con blobs de color
+   muy sutiles detrás y superficies de vidrio translúcido. El re-tinte del
+   primario de Mantine está scoped a .admin-shell (no afecta mapa ni login). */
 
 .admin-shell {
   display: flex;
   height: 100dvh;
   overflow: hidden;
-  background: var(--bg);
+  position: relative;
+  isolation: isolate;
+  background: #ffffff;
+
+  /* Re-tinte del color primario de Mantine, solo dentro del admin */
+  --mantine-primary-color-filled: #00b8b7;
+  --mantine-primary-color-filled-hover: #049e9d;
+  --mantine-primary-color-light: rgba(0, 184, 183, 0.12);
+  --mantine-primary-color-light-hover: rgba(0, 184, 183, 0.2);
+  --mantine-primary-color-light-color: #058a89;
+
+  /* Paleta glass local */
+  --ad-accent: #00b8b7;
+  --ad-accent-strong: #058a89;
+  --ad-accent-soft: rgba(0, 184, 183, 0.1);
+  --ad-glass: rgba(255, 255, 255, 0.72);
+  --ad-glass-border: rgba(15, 23, 42, 0.08);
+  --ad-glass-highlight: rgba(255, 255, 255, 0.9);
+}
+
+/* Blobs de color difuminados detrás del vidrio */
+.admin-shell::before,
+.admin-shell::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  z-index: -1;
+  pointer-events: none;
+}
+.admin-shell::before {
+  width: 600px;
+  height: 600px;
+  top: -240px;
+  right: -140px;
+  background: radial-gradient(circle, #00b8b7, transparent 70%);
+  opacity: 0.14;
+}
+.admin-shell::after {
+  width: 640px;
+  height: 640px;
+  bottom: -320px;
+  left: 160px;
+  background: radial-gradient(circle, #122a72, transparent 70%);
+  opacity: 0.07;
 }
 
 .admin-nav {
@@ -100,15 +147,17 @@ body {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  background: var(--surface);
-  border-right: 1px solid var(--border);
+  background: var(--ad-glass);
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  border-right: 1px solid var(--ad-glass-border);
 }
 
 .admin-logo {
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: var(--accent-soft);
+  background: var(--ad-accent-soft);
   display: grid;
   place-items: center;
   flex-shrink: 0;
@@ -136,18 +185,18 @@ body {
 }
 
 .admin-nav-item:hover {
-  background: #f3f4f6;
+  background: rgba(15, 23, 42, 0.045);
   color: var(--text);
 }
 
 .admin-nav-item.is-active {
-  background: var(--accent-soft);
-  color: var(--accent);
+  background: var(--ad-accent-soft);
+  color: var(--ad-accent-strong);
 }
 
 .admin-nav-back {
   margin: 8px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--ad-glass-border);
   border-radius: 0;
   padding-top: 16px;
 }
@@ -161,8 +210,10 @@ body {
 
 .admin-header {
   padding: 20px 28px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  background: var(--ad-glass);
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  border-bottom: 1px solid var(--ad-glass-border);
   flex-shrink: 0;
 }
 
@@ -173,10 +224,16 @@ body {
 }
 
 .admin-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--ad-glass);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid var(--ad-glass-border);
   border-radius: var(--radius-lg);
   padding: 20px;
+  box-shadow:
+    inset 0 1px 0 var(--ad-glass-highlight),
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 18px 40px -24px rgba(15, 23, 42, 0.16);
 }
 
 @media (max-width: 768px) {
@@ -190,6 +247,16 @@ body {
   .admin-content {
     padding: 16px;
   }
+}
+
+/* Modales del admin: Mantine los renderiza en un portal fuera de .admin-shell,
+   así que el re-tinte del primario se aplica aquí por su clase propia. */
+.ad-modal {
+  --mantine-primary-color-filled: #00b8b7;
+  --mantine-primary-color-filled-hover: #049e9d;
+  --mantine-primary-color-light: rgba(0, 184, 183, 0.12);
+  --mantine-primary-color-light-hover: rgba(0, 184, 183, 0.2);
+  --mantine-primary-color-light-color: #058a89;
 }
 
 /* ── Leaflet: acabado minimalista ───────────────────────────── */

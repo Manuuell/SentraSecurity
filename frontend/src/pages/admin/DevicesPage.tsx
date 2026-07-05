@@ -202,7 +202,7 @@ function EditModal({ vehicle, onClose }: { vehicle: Vehicle | null; onClose: () 
   };
 
   return (
-    <Modal opened={vehicle !== null} onClose={onClose} title="Editar dispositivo" centered radius="lg">
+    <Modal opened={vehicle !== null} onClose={onClose} title="Editar dispositivo" centered radius="lg" className="ad-modal">
       {vehicle && (
         <Stack gap="sm">
           <TextInput label="ID del rastreador" value={vehicle.id} disabled />
