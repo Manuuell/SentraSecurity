@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 import {
   Alert,
   Button,
@@ -8,7 +9,7 @@ import {
   Text,
   TextInput,
 } from "@mantine/core";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ArrowLeft } from "lucide-react";
 import { isAxiosError } from "axios";
 import { useAuth } from "../auth/AuthProvider";
 
@@ -41,6 +42,7 @@ export default function LoginPage() {
   return (
     <div
       style={{
+        position: "relative",
         minHeight: "100dvh",
         display: "grid",
         placeItems: "center",
@@ -48,6 +50,25 @@ export default function LoginPage() {
         padding: 16,
       }}
     >
+      <Link
+        to="/"
+        style={{
+          position: "absolute",
+          top: 24,
+          left: 24,
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 6,
+          fontSize: 14,
+          fontWeight: 600,
+          color: "var(--text-secondary)",
+          textDecoration: "none",
+        }}
+      >
+        <ArrowLeft size={16} />
+        Volver
+      </Link>
+
       <Paper
         w="100%"
         maw={400}
