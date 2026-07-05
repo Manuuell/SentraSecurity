@@ -163,7 +163,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: clamp(18px, 2.6vw, 28px) clamp(20px, 5vw, 64px);
+  padding: clamp(12px, 1.6vw, 18px) clamp(20px, 5vw, 64px);
   background: rgba(255, 255, 255, 0.72);
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
@@ -176,12 +176,12 @@
   gap: clamp(8px, 2vw, 14px);
 }
 .lg-nav-brand img {
-  height: clamp(30px, 6vw, 40px);
+  height: clamp(26px, 4vw, 32px);
   width: auto;
 }
 .lg-nav-brand-text {
   font-weight: 800;
-  font-size: clamp(15px, 4vw, 20px);
+  font-size: clamp(14px, 3vw, 17px);
   white-space: nowrap;
 }
 .lg-nav-links {
@@ -263,6 +263,15 @@
   font-weight: 800;
   letter-spacing: -0.02em;
   margin: 20px 0 0;
+}
+.lg-h1-highlight {
+  color: var(--lg-cyan-dim);
+  background: rgba(0, 184, 183, 0.14);
+  padding: 0 10px;
+  border-radius: 10px;
+  white-space: nowrap;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
 }
 .lg-h2 {
   font-size: clamp(26px, 3.6vw, 38px);

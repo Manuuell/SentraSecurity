@@ -89,7 +89,9 @@ export default function LandingPage() {
 
       <header className="lg-section lg-hero">
         <div>
-          <h1 className="lg-h1">Tu moto, siempre a la vista.</h1>
+          <h1 className="lg-h1">
+            Tu moto, siempre <span className="lg-h1-highlight">a la vista</span>.
+          </h1>
           <p className="lg-lead">
             SentraSecurity monitorea tu moto en tiempo real y te deja cortar el motor a
             distancia si te la roban. Web y app móvil, alertas al instante.
