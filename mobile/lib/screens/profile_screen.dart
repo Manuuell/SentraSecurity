@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
-import '../core/config.dart';
 import '../state/sentra_service.dart';
 import '../ui/tokens.dart';
 import '../ui/widgets.dart';
@@ -76,17 +74,6 @@ class ProfileScreen extends StatelessWidget {
 
           // Ayuda y contacto
           const SectionTitle('Ayuda y contacto'),
-          if (AppConfig.supportWhatsApp.isNotEmpty)
-            _ActionTile(
-              icon: Icons.chat_rounded,
-              color: AppColors.green,
-              title: 'Escríbenos por WhatsApp',
-              subtitle: 'Soporte de SentraSecurity',
-              onTap: () => launchUrl(
-                Uri.parse('https://wa.me/${AppConfig.supportWhatsApp}'),
-                mode: LaunchMode.externalApplication,
-              ),
-            ),
           _ActionTile(
             icon: Icons.location_city_rounded,
             color: AppColors.primary,
@@ -133,38 +120,31 @@ class _ActionTile extends StatelessWidget {
     required this.color,
     required this.title,
     required this.subtitle,
-    this.onTap,
   });
   final IconData icon;
   final Color color;
   final String title, subtitle;
-  final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-        onTap: onTap,
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(14),
-          decoration: appCard(radius: 16),
-          child: Row(
-            children: [
-              SoftIconChip(icon: icon, color: color, size: 42),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.text)),
-                    const SizedBox(height: 2),
-                    Text(subtitle, style: const TextStyle(fontSize: 12, color: AppColors.textFaint)),
-                  ],
-                ),
+  Widget build(BuildContext context) => Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        decoration: appCard(radius: 16),
+        child: Row(
+          children: [
+            SoftIconChip(icon: icon, color: color, size: 42),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.text)),
+                  const SizedBox(height: 2),
+                  Text(subtitle, style: const TextStyle(fontSize: 12, color: AppColors.textFaint)),
+                ],
               ),
-              if (onTap != null)
-                const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.textFaint),
-            ],
-          ),
+            ),
+          ],
         ),
       );
 }

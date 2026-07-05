@@ -76,6 +76,11 @@ class Vehicle(Base):
     created_at = Column(DateTime(timezone=True), default=utcnow)
     updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
+    # Canal de comandos SMS (Fase 3, modo manual — ver docs/corte-motor.md).
+    # command_password_enc se guarda cifrada (server/crypto.py); nunca en claro.
+    sim_phone            = Column(String(20), nullable=True)
+    command_password_enc = Column(String(255), nullable=True)
+
     # Last known position cache (denormalized for fast reads)
     last_lat       = Column(Float, nullable=True)
     last_lon       = Column(Float, nullable=True)
@@ -120,6 +125,40 @@ class Position(Base):
     __table_args__ = (
         Index("ix_positions_vehicle_timestamp", "vehicle_id", "timestamp"),
     )
+
+
+# ---------------------------------------------------------------------------
+# Comandos al dispositivo (Fase 3 — corte de motor)
+# ---------------------------------------------------------------------------
+
+COMMAND_ENGINE_STOP = "ENGINE_STOP"
+COMMAND_ENGINE_RESUME = "ENGINE_RESUME"
+COMMAND_TYPES = (COMMAND_ENGINE_STOP, COMMAND_ENGINE_RESUME)
+
+# pending -> sent -> confirmed (o failed/expired). Nunca "éxito optimista":
+# el estado real lo fija un humano hasta que exista el gateway automatizado.
+CMD_PENDING = "pending"
+CMD_SENT = "sent"
+CMD_CONFIRMED = "confirmed"
+CMD_FAILED = "failed"
+CMD_EXPIRED = "expired"
+COMMAND_STATUSES = (CMD_PENDING, CMD_SENT, CMD_CONFIRMED, CMD_FAILED, CMD_EXPIRED)
+COMMAND_ACTIVE_STATUSES = (CMD_PENDING, CMD_SENT)
+
+
+class DeviceCommand(Base):
+    __tablename__ = "device_commands"
+
+    id           = Column(Integer, primary_key=True, autoincrement=True)
+    vehicle_id   = Column(String(10), ForeignKey("vehicles.id", ondelete="CASCADE"),
+                          nullable=False, index=True)
+    type         = Column(String(20), nullable=False)
+    status       = Column(String(20), nullable=False, default=CMD_PENDING)
+    requested_by = Column(ForeignKey("users.id"), nullable=False)
+    created_at   = Column(DateTime(timezone=True), default=utcnow)
+    sent_at      = Column(DateTime(timezone=True), nullable=True)
+    confirmed_at = Column(DateTime(timezone=True), nullable=True)
+    error        = Column(Text, nullable=True)
 
 
 class Alarm(Base):

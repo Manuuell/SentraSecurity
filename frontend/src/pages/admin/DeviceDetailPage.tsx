@@ -26,6 +26,7 @@ import { fmtDateTime, fmtSpeed, parseTs, timeAgo } from "../../lib/format";
 import { matchTrackToRoads } from "../../lib/mapmatch";
 import { vehicleIcon } from "../../components/LiveMap";
 import { ErrorState } from "../../components/States";
+import { VehicleCommandsPanel } from "../../components/VehicleCommandsPanel";
 import type { TrackPoint } from "../../types";
 
 const DAY_MS = 86_400_000;
@@ -431,6 +432,8 @@ export default function DeviceDetailPage() {
           </Group>
         )}
       </div>
+
+      <VehicleCommandsPanel vehicle={vehicle} />
     </Stack>
   );
 }

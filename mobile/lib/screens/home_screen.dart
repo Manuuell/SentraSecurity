@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:timeago/timeago.dart' as timeago;
-import 'package:url_launcher/url_launcher.dart';
-import '../core/config.dart';
 import '../state/sentra_service.dart';
 import '../data/models/vehicle.dart';
 import '../ui/tokens.dart';
@@ -200,24 +198,6 @@ class _EmptyState extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.5),
               ),
-              if (AppConfig.supportWhatsApp.isNotEmpty) ...[
-                const SizedBox(height: 24),
-                FilledButton.icon(
-                  onPressed: () => launchUrl(
-                    Uri.parse('https://wa.me/${AppConfig.supportWhatsApp}'
-                        '?text=Hola,%20quiero%20activar%20el%20rastreo%20de%20mi%20moto'),
-                    mode: LaunchMode.externalApplication,
-                  ),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  ),
-                  icon: const Icon(Icons.chat_rounded, size: 18),
-                  label: const Text('Contactar a SentraSecurity',
-                      style: TextStyle(fontWeight: FontWeight.w700)),
-                ),
-              ],
             ],
           ),
         ),

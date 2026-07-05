@@ -20,8 +20,24 @@ from server.auth import (
     get_current_user,
     require_role,
 )
+from server.crypto import decrypt_secret, encrypt_secret
 from server.database import AsyncSessionLocal, get_db
-from server.models import ROLE_ADMIN, ROLE_OPERATOR, User, Vehicle, Position, Alarm
+from server.models import (
+    CMD_CONFIRMED,
+    CMD_FAILED,
+    CMD_SENT,
+    COMMAND_ACTIVE_STATUSES,
+    COMMAND_ENGINE_RESUME,
+    COMMAND_ENGINE_STOP,
+    COMMAND_TYPES,
+    ROLE_ADMIN,
+    ROLE_OPERATOR,
+    User,
+    Vehicle,
+    Position,
+    Alarm,
+    DeviceCommand,
+)
 from server.ws import manager as ws_manager
 from server.api.auth_routes import router as auth_router
 from server.api.admin_routes import router as admin_router
@@ -74,9 +90,12 @@ async def update_vehicle(
     db: AsyncSession = Depends(get_db),
 ):
     vehicle = await _require_vehicle(db, device_id, user)
-    for field in ("name", "plate"):
+    for field in ("name", "plate", "sim_phone"):
         if field in body:
             setattr(vehicle, field, body[field])
+    if "command_password" in body:
+        pw = (body["command_password"] or "").strip()
+        vehicle.command_password_enc = encrypt_secret(pw) if pw else None
     vehicle.updated_at = datetime.now(timezone.utc)
     await db.commit()
     return _vehicle_dict(vehicle)
@@ -120,6 +139,119 @@ async def track_today(
     now = datetime.now(timezone.utc)
     start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     return await get_positions(device_id, since=start, until=now, limit=5000, user=user, db=db)
+
+
+# ---------------------------------------------------------------------------
+# Device commands (Fase 3 — corte de motor, modo manual)
+#
+# Máquina de estados: pending -> sent -> confirmed (o failed/expired).
+# Nunca "éxito optimista": el estado lo confirma un humano (hoy no hay
+# gateway SMS automatizado — ver docs/corte-motor.md) hasta recibir el
+# SET OK del equipo o comprobar el corte en campo.
+# ---------------------------------------------------------------------------
+
+SMS_CODE_BY_TYPE = {COMMAND_ENGINE_STOP: "940", COMMAND_ENGINE_RESUME: "941"}
+
+
+@router.post("/vehicles/{device_id}/commands", status_code=201)
+async def create_command(
+    device_id: str,
+    body: dict,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    vehicle = await _require_vehicle(db, device_id, user)
+    cmd_type = body.get("type")
+    if cmd_type not in COMMAND_TYPES:
+        raise HTTPException(status_code=400, detail="Tipo de comando inválido")
+
+    in_flight = await db.execute(
+        select(DeviceCommand).where(
+            DeviceCommand.vehicle_id == device_id,
+            DeviceCommand.status.in_(COMMAND_ACTIVE_STATUSES),
+        )
+    )
+    if in_flight.scalar_one_or_none() is not None:
+        raise HTTPException(status_code=409, detail="Ya hay un comando en curso para este vehículo")
+
+    command = DeviceCommand(vehicle_id=device_id, type=cmd_type, requested_by=user.id)
+    db.add(command)
+    await db.commit()
+    await db.refresh(command)
+
+    # El texto del SMS solo se revela a quien puede operarlo (admin/operator):
+    # un cliente puede solicitar el corte, pero no ve la contraseña del equipo.
+    sms_text = sms_phone = None
+    if user.role in (ROLE_ADMIN, ROLE_OPERATOR) and vehicle.command_password_enc:
+        password = decrypt_secret(vehicle.command_password_enc)
+        sms_text = f"{SMS_CODE_BY_TYPE[cmd_type]}{password}"
+        sms_phone = vehicle.sim_phone
+
+    return _command_dict(command, sms_text=sms_text, sms_phone=sms_phone)
+
+
+@router.get("/vehicles/{device_id}/commands")
+async def list_commands(
+    device_id: str,
+    limit: int = Query(20, le=200),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    vehicle = await _require_vehicle(db, device_id, user)
+    q = (
+        select(DeviceCommand)
+        .where(DeviceCommand.vehicle_id == device_id)
+        .order_by(desc(DeviceCommand.created_at))
+        .limit(limit)
+    )
+    result = await db.execute(q)
+    commands = result.scalars().all()
+
+    # La contraseña se descifra una vez y solo se adjunta a los comandos aún
+    # accionables (pending/sent) de un admin/operator — nunca al cliente ni
+    # a comandos ya cerrados. Sobrevive a un refresh de la página.
+    password = None
+    if user.role in (ROLE_ADMIN, ROLE_OPERATOR) and vehicle.command_password_enc:
+        password = decrypt_secret(vehicle.command_password_enc)
+
+    out = []
+    for c in commands:
+        sms_text = sms_phone = None
+        if password and c.status in COMMAND_ACTIVE_STATUSES:
+            sms_text = f"{SMS_CODE_BY_TYPE[c.type]}{password}"
+            sms_phone = vehicle.sim_phone
+        out.append(_command_dict(c, sms_text=sms_text, sms_phone=sms_phone))
+    return out
+
+
+@router.patch("/commands/{command_id}/status")
+async def update_command_status(
+    command_id: int,
+    body: dict,
+    user: User = Depends(require_role(ROLE_ADMIN, ROLE_OPERATOR)),
+    db: AsyncSession = Depends(get_db),
+):
+    command = await db.get(DeviceCommand, command_id)
+    if command is None:
+        raise HTTPException(status_code=404, detail="Comando no encontrado")
+
+    new_status = body.get("status")
+    if new_status not in (CMD_SENT, CMD_CONFIRMED, CMD_FAILED):
+        raise HTTPException(status_code=400, detail="Estado inválido")
+
+    now = datetime.now(timezone.utc)
+    if new_status == CMD_SENT:
+        command.sent_at = now
+    elif new_status == CMD_CONFIRMED:
+        command.confirmed_at = now
+        if command.sent_at is None:
+            command.sent_at = now
+    elif new_status == CMD_FAILED:
+        command.error = (body.get("error") or "").strip() or None
+
+    command.status = new_status
+    await db.commit()
+    return _command_dict(command)
 
 
 # ---------------------------------------------------------------------------
@@ -274,7 +406,28 @@ def _vehicle_dict(v: Vehicle) -> dict:
         "voltage": v.voltage,
         "gsm_signal": v.gsm_signal,
         "satellites": v.satellites,
+        "sim_phone": v.sim_phone,
+        "has_command_password": v.command_password_enc is not None,
     }
+
+
+def _command_dict(c: DeviceCommand, sms_text: Optional[str] = None, sms_phone: Optional[str] = None) -> dict:
+    d = {
+        "id": c.id,
+        "vehicle_id": c.vehicle_id,
+        "type": c.type,
+        "status": c.status,
+        "requested_by": c.requested_by,
+        "created_at": c.created_at.isoformat() if c.created_at else None,
+        "sent_at": c.sent_at.isoformat() if c.sent_at else None,
+        "confirmed_at": c.confirmed_at.isoformat() if c.confirmed_at else None,
+        "error": c.error,
+    }
+    if sms_text is not None:
+        d["sms_text"] = sms_text
+    if sms_phone is not None:
+        d["sms_phone"] = sms_phone
+    return d
 
 
 def _position_dict(p: Position) -> dict:

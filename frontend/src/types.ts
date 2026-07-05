@@ -16,6 +16,8 @@ export interface Vehicle {
   voltage: number | null;
   gsm_signal: number | null;
   satellites: number | null;
+  sim_phone: string | null;
+  has_command_password: boolean;
 }
 
 export interface TrackPoint {
@@ -99,4 +101,24 @@ export interface AdminUser {
   is_active: boolean;
   created_at: string | null;
   vehicle_count: number;
+}
+
+// ── Comandos al dispositivo (Fase 3 — corte de motor) ──────────────
+
+export type CommandType = "ENGINE_STOP" | "ENGINE_RESUME";
+export type CommandStatus = "pending" | "sent" | "confirmed" | "failed" | "expired";
+
+export interface DeviceCommand {
+  id: number;
+  vehicle_id: string;
+  type: CommandType;
+  status: CommandStatus;
+  requested_by: number;
+  created_at: string;
+  sent_at: string | null;
+  confirmed_at: string | null;
+  error: string | null;
+  /** Solo presentes para admin/operator mientras el comando sigue activo. */
+  sms_text?: string;
+  sms_phone?: string | null;
 }

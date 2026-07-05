@@ -37,10 +37,18 @@ export function usePositions(vehicleId: string | null, fromMs: number, toMs: num
   });
 }
 
+interface UpdateVehicleInput {
+  id: string;
+  name?: string;
+  plate?: string;
+  sim_phone?: string;
+  command_password?: string;
+}
+
 export function useUpdateVehicle() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...body }: { id: string; name?: string; plate?: string }) =>
+    mutationFn: ({ id, ...body }: UpdateVehicleInput) =>
       api.patch<Vehicle>(`/api/vehicles/${id}`, body).then((r) => r.data),
     onSuccess: (updated) => {
       queryClient.setQueryData<Vehicle[]>(["vehicles"], (prev) =>
