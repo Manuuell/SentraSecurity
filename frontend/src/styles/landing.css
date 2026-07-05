@@ -40,7 +40,14 @@
   inset: 0;
   z-index: -1;
   overflow: hidden;
-  background: linear-gradient(155deg, #eafcfb 0%, #ffffff 30%, #ffffff 58%, #eef5ff 100%);
+  background: linear-gradient(
+    155deg,
+    #d9f9f6 0%,
+    #eafcfb 8%,
+    #eef5ff 40%,
+    #e4f1ff 68%,
+    #dcf5f2 100%
+  );
 }
 .lg-blob {
   position: absolute;
@@ -54,7 +61,7 @@
   top: -220px;
   right: -160px;
   background: radial-gradient(circle, var(--lg-cyan), transparent 70%);
-  opacity: 0.26;
+  opacity: 0.4;
   animation-duration: 22s;
 }
 .lg-blob--cyan-2 {
@@ -63,9 +70,19 @@
   top: 55%;
   left: -180px;
   background: radial-gradient(circle, var(--lg-cyan-dim), transparent 70%);
-  opacity: 0.2;
+  opacity: 0.32;
   animation-duration: 28s;
   animation-delay: -9s;
+}
+.lg-blob--cyan-3 {
+  width: 420px;
+  height: 420px;
+  top: 18%;
+  left: 6%;
+  background: radial-gradient(circle, var(--lg-cyan), transparent 70%);
+  opacity: 0.18;
+  animation-duration: 26s;
+  animation-delay: -14s;
 }
 .lg-blob--navy {
   width: 720px;
@@ -73,7 +90,7 @@
   bottom: -320px;
   right: -120px;
   background: radial-gradient(circle, var(--lg-navy-700), transparent 70%);
-  opacity: 0.16;
+  opacity: 0.22;
   animation-duration: 32s;
   animation-delay: -18s;
 }
