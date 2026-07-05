@@ -49,6 +49,7 @@ jobs:
           VITE_API_URL: ""
           VITE_WS_URL: ""
           VITE_OSRM_URL: https://sentrasecurity.duckdns.org/osrm
+          VITE_GOOGLE_MAPS_KEY: ${{ secrets.VITE_GOOGLE_MAPS_KEY }}
         run: |
           cd frontend
           npm ci

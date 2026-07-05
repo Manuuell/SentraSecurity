@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ActionIcon,
   Badge,
@@ -31,6 +31,7 @@ import type { Vehicle, VehicleStatus } from "../types";
 import { STATUS_META } from "../lib/status";
 import { fmtSpeed, timeAgo } from "../lib/format";
 import { useUpdateVehicle, useVehicleStreetview } from "../api/vehicles";
+import { loadGoogleMaps } from "../lib/googleMaps";
 
 interface Props {
   vehicle: Vehicle;
@@ -63,7 +64,9 @@ function Metric({ icon, label, value }: { icon: ReactNode; label: string; value:
 
 const iconProps = { size: 13, color: "var(--text-faint)" } as const;
 
-function StreetViewPreview({ vehicleId }: { vehicleId: string }) {
+/** Versión estática (server-side, sin exponer key): usada cuando no hay
+ * VITE_GOOGLE_MAPS_KEY configurada para el modo interactivo. */
+function StaticStreetView({ vehicleId }: { vehicleId: string }) {
   const { data: blob, isLoading, isError } = useVehicleStreetview(vehicleId, true);
   const [url, setUrl] = useState<string | null>(null);
 
@@ -77,19 +80,65 @@ function StreetViewPreview({ vehicleId }: { vehicleId: string }) {
     return () => URL.revokeObjectURL(objectUrl);
   }, [blob]);
 
-  if (isLoading) return <Skeleton h={140} radius="md" mt="md" />;
+  if (isLoading) return <Skeleton h={180} radius="md" mt="md" />;
   if (isError || !url) return null;
 
   return (
     <Image
       src={url}
-      h={140}
+      h={180}
       radius="md"
       mt="md"
       fit="cover"
       alt="Vista de calle de la última posición"
     />
   );
+}
+
+/** Panorama interactivo (arrastrar/mirar alrededor) vía Google Maps JS,
+ * cargado solo en el navegador con una key restringida por dominio. */
+function InteractiveStreetView({ lat, lon }: { lat: number; lon: number }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setFailed(false);
+
+    loadGoogleMaps()
+      .then(() => {
+        if (cancelled || !containerRef.current) return;
+        const position = { lat, lng: lon };
+        new google.maps.StreetViewPanorama(containerRef.current, {
+          position,
+          pov: { heading: 0, pitch: 0 },
+          addressControl: false,
+          fullscreenControl: false,
+          motionTracking: false,
+        });
+        new google.maps.StreetViewService().getPanorama({ location: position, radius: 60 }, (_, status) => {
+          if (!cancelled && status !== google.maps.StreetViewStatus.OK) setFailed(true);
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [lat, lon]);
+
+  if (failed) return null;
+  return <div ref={containerRef} style={{ height: 180, borderRadius: 12, overflow: "hidden", marginTop: 16 }} />;
+}
+
+function StreetViewPreview({ vehicle }: { vehicle: Vehicle }) {
+  const hasClientKey = Boolean(import.meta.env.VITE_GOOGLE_MAPS_KEY);
+  if (hasClientKey && vehicle.last_lat != null && vehicle.last_lon != null) {
+    return <InteractiveStreetView lat={vehicle.last_lat} lon={vehicle.last_lon} />;
+  }
+  return <StaticStreetView vehicleId={vehicle.id} />;
 }
 
 export function VehicleDetailPanel({
@@ -174,7 +223,7 @@ export function VehicleDetailPanel({
         <Metric icon={<Clock {...iconProps} />} label="Última señal" value={timeAgo(vehicle.last_seen, now)} />
       </SimpleGrid>
 
-      <StreetViewPreview vehicleId={vehicle.id} />
+      <StreetViewPreview vehicle={vehicle} />
 
       <Group grow mt="md" gap="xs">
         <Button

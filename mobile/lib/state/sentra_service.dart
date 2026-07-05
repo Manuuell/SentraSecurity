@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as ws_status;
@@ -185,6 +186,16 @@ class SentraService extends ChangeNotifier {
     final r = await _api.dio
         .post('/api/vehicles/$vehicleId/commands', data: {'type': type});
     return DeviceCommand.fromJson(r.data as Map<String, dynamic>);
+  }
+
+  /// Imagen de Street View de la última posición conocida. Lanza si el
+  /// servidor no tiene Street View configurado o no hay imagen disponible.
+  Future<Uint8List> getStreetview(String vehicleId) async {
+    final r = await _api.dio.get(
+      '/api/vehicles/$vehicleId/streetview',
+      options: Options(responseType: ResponseType.bytes),
+    );
+    return Uint8List.fromList(r.data as List<int>);
   }
 
   Vehicle? vehicleById(String id) {

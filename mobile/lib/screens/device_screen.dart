@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:provider/provider.dart';
@@ -143,6 +144,10 @@ class DeviceScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
+          // ── Street View ──────────────────────────────────────────
+          _StreetViewCard(vehicleId: vehicle.id),
+          const SizedBox(height: 16),
+
           // ── Histórico de recorridos ─────────────────────────────
           GestureDetector(
             onTap: () => Navigator.push(context,
@@ -253,4 +258,64 @@ class _TelCard extends StatelessWidget {
       ],
     ),
   );
+}
+
+/// Imagen de Street View de la última posición. El [Future] se guarda en
+/// estado (no se recrea en cada build) porque esta pantalla se reconstruye
+/// seguido con cada actualización del WebSocket.
+class _StreetViewCard extends StatefulWidget {
+  const _StreetViewCard({required this.vehicleId});
+  final String vehicleId;
+
+  @override
+  State<_StreetViewCard> createState() => _StreetViewCardState();
+}
+
+class _StreetViewCardState extends State<_StreetViewCard> {
+  late Future<Uint8List> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = context.read<SentraService>().getStreetview(widget.vehicleId);
+  }
+
+  @override
+  void didUpdateWidget(covariant _StreetViewCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.vehicleId != widget.vehicleId) {
+      _future = context.read<SentraService>().getStreetview(widget.vehicleId);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Uint8List>(
+      future: _future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Container(
+            height: 140,
+            decoration: appCard(radius: 16),
+            child: const Center(
+              child: SizedBox(
+                width: 20, height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          );
+        }
+        if (snapshot.hasError || !snapshot.hasData) {
+          return const SizedBox.shrink();
+        }
+        return Container(
+          height: 140,
+          width: double.infinity,
+          decoration: appCard(radius: 16),
+          clipBehavior: Clip.antiAlias,
+          child: Image.memory(snapshot.data!, fit: BoxFit.cover),
+        );
+      },
+    );
+  }
 }
