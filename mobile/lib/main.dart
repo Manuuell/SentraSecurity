@@ -1,13 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import 'core/push_service.dart';
 import 'state/sentra_service.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_shell.dart';
 import 'ui/tokens.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   timeago.setLocaleMessages('es', timeago.EsMessages());
+  timeago.setLocaleMessages('es_short', timeago.EsShortMessages());
+  await initializeDateFormatting('es');
+  await PushService.instance.init();
   runApp(
     ChangeNotifierProvider(
       create: (_) => SentraService(),
@@ -24,6 +31,13 @@ class SentraApp extends StatelessWidget {
     return MaterialApp(
       title: 'SentraSecurity GPS',
       debugShowCheckedModeBanner: false,
+      locale: const Locale('es'),
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('es'), Locale('en')],
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: AppColors.primary,

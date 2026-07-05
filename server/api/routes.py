@@ -37,6 +37,7 @@ from server.models import (
     Position,
     Alarm,
     DeviceCommand,
+    PushToken,
 )
 from server.ws import manager as ws_manager
 from server.api.auth_routes import router as auth_router
@@ -297,6 +298,34 @@ async def acknowledge_alarm(
     alarm.acknowledged = True
     await db.commit()
     return _alarm_dict(alarm)
+
+
+# ---------------------------------------------------------------------------
+# Push notifications (Fase 4 — FCM, ver server/push.py)
+# ---------------------------------------------------------------------------
+
+@router.post("/push_tokens", status_code=201)
+async def register_push_token(
+    body: dict,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    token = (body.get("fcm_token") or "").strip()
+    if not token:
+        raise HTTPException(status_code=400, detail="fcm_token requerido")
+    platform = (body.get("platform") or "android").strip()
+
+    result = await db.execute(select(PushToken).where(PushToken.fcm_token == token))
+    existing = result.scalar_one_or_none()
+    if existing is not None:
+        # Mismo token, posible cambio de cuenta en el dispositivo (upsert).
+        existing.user_id = user.id
+        existing.platform = platform
+        existing.updated_at = datetime.now(timezone.utc)
+    else:
+        db.add(PushToken(user_id=user.id, fcm_token=token, platform=platform))
+    await db.commit()
+    return {"ok": True}
 
 
 # ---------------------------------------------------------------------------

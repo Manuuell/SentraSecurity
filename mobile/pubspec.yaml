@@ -10,6 +10,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
 
   # HTTP con JWT hacia la API propia
   dio: ^5.4.3
@@ -18,7 +20,7 @@ dependencies:
   flutter_secure_storage: ^9.2.2
 
   # WebSocket tiempo real
-  web_socket_channel: ^2.4.5
+  web_socket_channel: ^3.0.3
 
   # Mapa (OpenStreetMap, sin API key)
   flutter_map: ^6.1.0
@@ -30,11 +32,15 @@ dependencies:
   # Preferencias locales de UI
   shared_preferences: ^2.3.2
 
-  # Notificaciones locales
+  # Notificaciones locales (banner en primer plano)
   flutter_local_notifications: ^17.2.3
 
+  # Push (Fase 4 — FCM)
+  firebase_core: ^3.8.0
+  firebase_messaging: ^15.1.6
+
   # Utilidades
-  intl: ^0.19.0
+  intl: ^0.20.2
   timeago: ^3.6.1
 
   cupertino_icons: ^1.0.6

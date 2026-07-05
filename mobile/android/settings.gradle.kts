@@ -20,6 +20,9 @@ plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
     id("com.android.application") version "8.7.0" apply false
     id("org.jetbrains.kotlin.android") version "1.8.22" apply false
+    // Fase 4 — FCM: aplicado condicionalmente en app/build.gradle.kts solo si
+    // google-services.json ya existe (no bloquea el build mientras no esté).
+    id("com.google.gms.google-services") version "4.4.2" apply false
 }
 
 include(":app")

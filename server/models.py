@@ -161,6 +161,21 @@ class DeviceCommand(Base):
     error        = Column(Text, nullable=True)
 
 
+# ---------------------------------------------------------------------------
+# Notificaciones push (Fase 4 — FCM)
+# ---------------------------------------------------------------------------
+
+class PushToken(Base):
+    __tablename__ = "push_tokens"
+
+    id         = Column(Integer, primary_key=True, autoincrement=True)
+    user_id    = Column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    fcm_token  = Column(String(255), unique=True, nullable=False)
+    platform   = Column(String(20), nullable=False, default="android")
+    created_at = Column(DateTime(timezone=True), default=utcnow)
+    updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
 class Alarm(Base):
     __tablename__ = "alarms"
 

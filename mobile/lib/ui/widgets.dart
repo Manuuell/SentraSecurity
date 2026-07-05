@@ -65,8 +65,12 @@ class MetricInline extends StatelessWidget {
           Row(children: [
             Icon(icon, size: 14, color: AppColors.textFaint),
             const SizedBox(width: 4),
-            Text(value,
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.text)),
+            Flexible(
+              child: Text(value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.text)),
+            ),
           ]),
           const SizedBox(height: 2),
           Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textFaint)),

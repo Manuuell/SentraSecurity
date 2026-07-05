@@ -5,6 +5,12 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Fase 4 — FCM: solo se aplica si ya se descargó google-services.json desde
+// la consola de Firebase (ver docs). Así el build no se rompe mientras tanto.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 android {
     namespace = "com.sentrasecurity.gps"
     compileSdk = flutter.compileSdkVersion

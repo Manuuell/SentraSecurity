@@ -12,7 +12,8 @@ from sqlalchemy import select, desc
 
 from server.parser import parse_packet, get_active_alarms, GPSPacket
 from server.database import AsyncSessionLocal
-from server.models import Vehicle, Position, Alarm
+from server.models import Vehicle, Position, Alarm, user_vehicles
+from server.push import send_push_to_users
 from server.ws import manager as ws_manager
 
 logger = logging.getLogger(__name__)
@@ -26,6 +27,17 @@ ONLINE_TIMEOUT = 120
 # Ventana de supresión de alarmas repetidas (fix B6): mientras el bit siga
 # activo, cada paquete re-reportaría la misma alarma cada pocos segundos
 ALARM_DEDUPE_WINDOW = timedelta(minutes=10)
+
+# Push al dueño del vehículo cuando entra una alarma nueva (Fase 4 — FCM).
+# Geocercas y "offline prolongado" quedan para cuando existan (Fase 5 / ajuste
+# de umbral); esto cubre las alarmas del propio tracker.
+ALARM_PUSH_TITLE = {
+    "EMERGENCY": "Alerta de emergencia",
+    "DISPLACEMENT": "Tu moto se movió sin encendido",
+    "OVERSPEED": "Exceso de velocidad",
+    "VIBRATION": "Vibración detectada",
+    "LOW_BATTERY": "Batería del rastreador baja",
+}
 
 # Referencias a tareas en vuelo (fix B7): sin referencia, asyncio puede
 # recolectarlas y las excepciones se pierden en silencio
@@ -98,6 +110,7 @@ async def _handle_packet(packet: GPSPacket) -> None:
 
             # Persist active alarms con deduplicación (fix B6): no se crea una
             # alarma nueva si ya existe una igual sin reconocer en la ventana
+            new_alarm_types: list[str] = []
             for alarm_type in get_active_alarms(packet):
                 recent = await session.execute(
                     select(Alarm)
@@ -123,7 +136,27 @@ async def _handle_packet(packet: GPSPacket) -> None:
                     speed_kmh  = packet.speed_kmh,
                 )
                 session.add(alarm)
+                new_alarm_types.append(alarm_type)
                 logger.warning("ALARM %s — device %s", alarm_type, packet.device_id)
+
+            owner_ids: list[int] = []
+            if new_alarm_types:
+                owners = await session.execute(
+                    select(user_vehicles.c.user_id).where(user_vehicles.c.vehicle_id == packet.device_id)
+                )
+                owner_ids = [row[0] for row in owners]
+
+    # Push a los dueños del vehículo (fuera de la transacción: nunca debe
+    # bloquearla ni tumbarla si FCM falla — ver server/push.py).
+    if new_alarm_types and owner_ids:
+        async with AsyncSessionLocal() as push_session:
+            for alarm_type in new_alarm_types:
+                await send_push_to_users(
+                    push_session, owner_ids,
+                    title=ALARM_PUSH_TITLE.get(alarm_type, "Alerta de tu moto"),
+                    body=f"{vehicle.name or vehicle.id} — revisa la app para más detalles.",
+                    data={"vehicle_id": vehicle.id, "alarm_type": alarm_type},
+                )
 
     # Broadcast real-time update via WebSocket (filtrado por permisos)
     await ws_manager.broadcast(vehicle_id=packet.device_id, payload={

@@ -6,9 +6,11 @@ import 'package:web_socket_channel/status.dart' as ws_status;
 
 import '../core/api_client.dart';
 import '../core/config.dart';
+import '../core/push_service.dart';
 import '../core/token_storage.dart';
 import '../data/models/app_event.dart';
 import '../data/models/auth_user.dart';
+import '../data/models/device_command.dart';
 import '../data/models/track_point.dart';
 import '../data/models/vehicle.dart';
 
@@ -45,6 +47,7 @@ class SentraService extends ChangeNotifier {
       user = AuthUser.fromJson(r.data as Map<String, dynamic>);
       await _loadInitialData();
       _connectWs();
+      _registerPush();
       notifyListeners();
       return true;
     } catch (_) {
@@ -61,7 +64,23 @@ class SentraService extends ChangeNotifier {
     user = AuthUser.fromJson(data['user'] as Map<String, dynamic>);
     await _loadInitialData();
     _connectWs();
+    _registerPush();
     notifyListeners();
+  }
+
+  void _registerPush() {
+    // Best-effort: pedir permiso y registrar el token nunca debe bloquear
+    // el login ni tumbar la sesión si Firebase no está configurado aún.
+    PushService.instance.requestAndRegister(_sendPushToken);
+  }
+
+  Future<void> _sendPushToken(String token) async {
+    try {
+      await _api.dio.post('/api/push_tokens', data: {
+        'fcm_token': token,
+        'platform': 'android',
+      });
+    } catch (_) {/* best-effort */}
   }
 
   Future<void> logout() async {
@@ -143,6 +162,29 @@ class SentraService extends ChangeNotifier {
     return (r.data as List)
         .map((e) => TrackPoint.fromJson(e as Map<String, dynamic>))
         .toList();
+  }
+
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await _api.dio.patch('/api/auth/me/password', data: {
+      'current_password': currentPassword,
+      'new_password': newPassword,
+    });
+  }
+
+  Future<List<DeviceCommand>> getCommands(String vehicleId) async {
+    final r = await _api.dio.get('/api/vehicles/$vehicleId/commands');
+    return (r.data as List)
+        .map((e) => DeviceCommand.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<DeviceCommand> sendCommand(String vehicleId, String type) async {
+    final r = await _api.dio
+        .post('/api/vehicles/$vehicleId/commands', data: {'type': type});
+    return DeviceCommand.fromJson(r.data as Map<String, dynamic>);
   }
 
   Vehicle? vehicleById(String id) {

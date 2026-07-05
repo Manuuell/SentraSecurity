@@ -10,14 +10,20 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import update
 
-from server.database import engine, init_db, AsyncSessionLocal
-from server.models import COMMAND_ACTIVE_STATUSES, CMD_EXPIRED, DeviceCommand, Vehicle
-from server.tcp_server import start_tcp_server
-from server.api.routes import router
+# Antes de importar módulos propios: varios leen variables de entorno al
+# cargarse (DATABASE_URL, GOOGLE_APPLICATION_CREDENTIALS...). En Docker las
+# variables ya vienen inyectadas y esto no hace nada (no pisa las existentes).
+load_dotenv()
+
+from server.database import engine, init_db, AsyncSessionLocal  # noqa: E402
+from server.models import COMMAND_ACTIVE_STATUSES, CMD_EXPIRED, DeviceCommand, Vehicle  # noqa: E402
+from server.tcp_server import start_tcp_server  # noqa: E402
+from server.api.routes import router  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,

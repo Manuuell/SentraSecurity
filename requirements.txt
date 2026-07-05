@@ -8,3 +8,4 @@ PyJWT==2.9.0
 argon2-cffi==23.1.0
 cryptography==43.0.3
 alembic==1.14.0
+firebase-admin==6.5.0

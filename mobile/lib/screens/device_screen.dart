@@ -6,7 +6,9 @@ import '../state/sentra_service.dart';
 import '../ui/tokens.dart';
 import '../ui/vehicle_status.dart';
 import '../ui/widgets.dart';
+import 'engine_control_card.dart';
 import 'map_screen.dart';
+import 'history_screen.dart';
 
 class DeviceScreen extends StatelessWidget {
   const DeviceScreen({super.key, required this.vehicleId});
@@ -141,6 +143,36 @@ class DeviceScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
+          // ── Histórico de recorridos ─────────────────────────────
+          GestureDetector(
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => HistoryScreen(vehicleId: vehicle.id))),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: appCard(radius: 16),
+              child: Row(
+                children: [
+                  const SoftIconChip(icon: Icons.history_rounded, color: AppColors.primary, size: 44),
+                  const SizedBox(width: 14),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Ver recorridos',
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.text)),
+                        SizedBox(height: 3),
+                        Text('Consulta por dónde anduvo tu moto',
+                            style: TextStyle(fontSize: 12, color: AppColors.textFaint)),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right_rounded, color: AppColors.textFaint),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
           // ── Telemetría ──────────────────────────────────────────
           const SectionTitle('Estado del rastreador'),
           GridView.count(
@@ -175,40 +207,7 @@ class DeviceScreen extends StatelessWidget {
 
           // ── Seguridad ───────────────────────────────────────────
           const SectionTitle('Seguridad'),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: appCard(radius: 16),
-            child: Row(
-              children: [
-                const SoftIconChip(icon: Icons.power_off_rounded, color: AppColors.red, size: 44),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(children: [
-                        const Text('Cortar motor',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.text)),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: AppColors.amberSoft,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Text('Muy pronto',
-                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.amber)),
-                        ),
-                      ]),
-                      const SizedBox(height: 3),
-                      const Text('Detén tu moto a distancia en caso de robo',
-                          style: TextStyle(fontSize: 12, color: AppColors.textFaint)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+          EngineControlCard(vehicle: vehicle),
           const SizedBox(height: 24),
         ],
       ),
