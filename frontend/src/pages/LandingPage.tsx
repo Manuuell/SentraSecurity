@@ -64,7 +64,6 @@ export default function LandingPage() {
         <div className="lg-blob lg-blob--navy" />
         <div className="lg-blob lg-blob--cyan-1" />
         <div className="lg-blob lg-blob--cyan-2" />
-        <div className="lg-grain" />
       </div>
 
       <nav className="lg-nav">
