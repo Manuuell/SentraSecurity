@@ -39,6 +39,9 @@ services:
       # nada más (server/push.py). Cuando exista el archivo en el VPS, montarlo
       # además como volumen de solo lectura apuntando a esta misma ruta.
       GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS:-}
+      # Street View del panel. Opcional: vacío desactiva la función sin
+      # romper nada más (ver server/api/routes.py).
+      GOOGLE_STREETVIEW_API_KEY: ${GOOGLE_STREETVIEW_API_KEY:-}
     ports:
       - "127.0.0.1:8000:8000"   # API REST + WebSocket (el nginx del host proxya con HTTPS)
       - "5013:8090"             # Ingestión TCP de los ST-907L (puerto abierto en OCI)

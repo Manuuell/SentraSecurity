@@ -8,9 +8,11 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 from datetime import datetime, timezone
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
+import httpx
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, WebSocket, WebSocketDisconnect
 from sqlalchemy import select, desc, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -100,6 +102,44 @@ async def update_vehicle(
     vehicle.updated_at = datetime.now(timezone.utc)
     await db.commit()
     return _vehicle_dict(vehicle)
+
+
+@router.get("/vehicles/{device_id}/streetview")
+async def vehicle_streetview(
+    device_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Proxy server-side a Street View Static API: la API key de Google nunca
+    llega al navegador (el cliente solo llama a nuestra propia API con JWT)."""
+    vehicle = await _require_vehicle(db, device_id, user)
+    if vehicle.last_lat is None or vehicle.last_lon is None:
+        raise HTTPException(404, "El vehículo no tiene una posición registrada")
+
+    api_key = os.environ.get("GOOGLE_STREETVIEW_API_KEY")
+    if not api_key:
+        raise HTTPException(503, "Street View no está configurado en el servidor")
+
+    params = {
+        "size": "640x400",
+        "location": f"{vehicle.last_lat},{vehicle.last_lon}",
+        "fov": 80,
+        "source": "outdoor",
+        "return_error_code": "true",
+        "key": api_key,
+    }
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get("https://maps.googleapis.com/maps/api/streetview", params=params)
+    except httpx.HTTPError:
+        raise HTTPException(502, "No se pudo contactar Street View")
+
+    if resp.status_code == 404:
+        raise HTTPException(404, "Sin imagen de Street View para esta ubicación")
+    if resp.status_code != 200:
+        raise HTTPException(502, "Street View no respondió correctamente")
+
+    return Response(content=resp.content, media_type=resp.headers.get("content-type", "image/jpeg"))
 
 
 # ---------------------------------------------------------------------------

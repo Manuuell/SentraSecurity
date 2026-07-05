@@ -22,6 +22,20 @@ export function useTrackToday(vehicleId: string | null, enabled: boolean) {
   });
 }
 
+/** Imagen de Street View de la última posición conocida (o null si no aplica/hay). */
+export function useVehicleStreetview(vehicleId: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: ["streetview", vehicleId],
+    queryFn: () =>
+      api
+        .get(`/api/vehicles/${vehicleId}/streetview`, { responseType: "blob" })
+        .then((r) => r.data as Blob),
+    enabled: enabled && vehicleId !== null,
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+}
+
 /** Histórico de posiciones en un rango arbitrario (milisegundos epoch). */
 export function usePositions(vehicleId: string | null, fromMs: number, toMs: number) {
   return useQuery({

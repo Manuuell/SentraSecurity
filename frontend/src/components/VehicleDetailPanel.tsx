@@ -5,8 +5,10 @@ import {
   Button,
   CloseButton,
   Group,
+  Image,
   Modal,
   Paper,
+  Skeleton,
   SimpleGrid,
   Stack,
   Text,
@@ -28,7 +30,7 @@ import {
 import type { Vehicle, VehicleStatus } from "../types";
 import { STATUS_META } from "../lib/status";
 import { fmtSpeed, timeAgo } from "../lib/format";
-import { useUpdateVehicle } from "../api/vehicles";
+import { useUpdateVehicle, useVehicleStreetview } from "../api/vehicles";
 
 interface Props {
   vehicle: Vehicle;
@@ -60,6 +62,35 @@ function Metric({ icon, label, value }: { icon: ReactNode; label: string; value:
 }
 
 const iconProps = { size: 13, color: "var(--text-faint)" } as const;
+
+function StreetViewPreview({ vehicleId }: { vehicleId: string }) {
+  const { data: blob, isLoading, isError } = useVehicleStreetview(vehicleId, true);
+  const [url, setUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!blob) {
+      setUrl(null);
+      return;
+    }
+    const objectUrl = URL.createObjectURL(blob);
+    setUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [blob]);
+
+  if (isLoading) return <Skeleton h={140} radius="md" mt="md" />;
+  if (isError || !url) return null;
+
+  return (
+    <Image
+      src={url}
+      h={140}
+      radius="md"
+      mt="md"
+      fit="cover"
+      alt="Vista de calle de la última posición"
+    />
+  );
+}
 
 export function VehicleDetailPanel({
   vehicle,
@@ -142,6 +173,8 @@ export function VehicleDetailPanel({
         />
         <Metric icon={<Clock {...iconProps} />} label="Última señal" value={timeAgo(vehicle.last_seen, now)} />
       </SimpleGrid>
+
+      <StreetViewPreview vehicleId={vehicle.id} />
 
       <Group grow mt="md" gap="xs">
         <Button
