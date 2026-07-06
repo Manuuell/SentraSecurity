@@ -130,7 +130,14 @@ export function TrackHistory({ vehicleId, mapHeight = 420 }: { vehicleId: string
   }, [preset, customFrom, customTo]);
 
   const positionsQ = usePositions(vehicleId || null, fromMs, toMs);
-  const track = useMemo(() => positionsQ.data ?? [], [positionsQ.data]);
+  // Solo fixes de GPS válidos: cuando el rastreador pierde señal reporta
+  // posiciones con valid=false (coordenadas saltarinas / última conocida) que,
+  // dibujadas, meten picos falsos en el trazo e inflan la distancia. Se
+  // descartan antes de cualquier cálculo (dibujo, ajuste a vías y stats).
+  const track = useMemo(
+    () => (positionsQ.data ?? []).filter((p) => p.valid !== false),
+    [positionsQ.data],
+  );
 
   // Traza sin el ruido de GPS quieto: es la base de lo que se DIBUJA y se
   // ajusta a vías. Las estadísticas de abajo siguen usando la traza cruda.

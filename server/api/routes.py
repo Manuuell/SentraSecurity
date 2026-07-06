@@ -163,12 +163,20 @@ async def get_positions(
     since: Optional[datetime] = Query(None),
     until: Optional[datetime] = Query(None),
     limit: int = Query(500, le=5000),
+    include_invalid: bool = Query(False),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     await _require_vehicle(db, device_id, user)
 
     q = select(Position).where(Position.vehicle_id == device_id)
+
+    # Por defecto solo fixes válidos: cuando el rastreador pierde señal GPS
+    # reporta posiciones con valid=false (coordenadas saltarinas) que, dibujadas
+    # en el trazo, meten picos falsos e inflan la distancia. Cualquier cliente
+    # que trace un recorrido las quiere fuera (web, "ruta de hoy", móvil).
+    if not include_invalid:
+        q = q.where(Position.valid.is_(True))
 
     if since:
         q = q.where(Position.timestamp >= since)
@@ -190,7 +198,11 @@ async def track_today(
 ):
     now = datetime.now(timezone.utc)
     start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    return await get_positions(device_id, since=start, until=now, limit=5000, user=user, db=db)
+    # include_invalid explícito: al llamar get_positions como función (no vía
+    # HTTP) los defaults Query(...) no se resuelven, así que hay que pasarlo.
+    return await get_positions(
+        device_id, since=start, until=now, limit=5000, include_invalid=False, user=user, db=db,
+    )
 
 
 # ---------------------------------------------------------------------------
