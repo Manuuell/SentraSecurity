@@ -72,6 +72,10 @@ export function NotificationsDrawer({ opened, onClose, alarms, vehicles, now, on
       onClose={onClose}
       position="right"
       size={380}
+      // Por encima de los flotantes del mapa y del panel de detalle (z-index
+      // 1000): con el default de Mantine (200) el drawer queda tapado por el
+      // panel de detalle (mismo lado derecho) y "no se abre nada".
+      zIndex={2000}
       title={
         <Group gap={8}>
           <Text fw={700} fz={16}>

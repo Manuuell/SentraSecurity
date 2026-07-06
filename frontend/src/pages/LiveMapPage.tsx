@@ -139,7 +139,7 @@ export default function LiveMapPage() {
         )}
       </main>
 
-      <Drawer opened={listOpen} onClose={listCtl.close} position="left" size={320} padding={0} withCloseButton={false}>
+      <Drawer opened={listOpen} onClose={listCtl.close} position="left" size={320} padding={0} withCloseButton={false} zIndex={2000}>
         <div style={{ height: "100dvh" }}>{sidebar}</div>
       </Drawer>
 
