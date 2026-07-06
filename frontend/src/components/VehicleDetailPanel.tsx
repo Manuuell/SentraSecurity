@@ -157,6 +157,8 @@ function StreetViewPreview({ vehicle }: { vehicle: Vehicle }) {
     <>
       <Box
         pos="relative"
+        h={180}
+        mt="md"
         style={{ cursor: canExplore ? "pointer" : undefined }}
         onClick={canExplore ? () => setExploring(true) : undefined}
       >
@@ -182,6 +184,7 @@ function StreetViewPreview({ vehicle }: { vehicle: Vehicle }) {
           size="lg"
           centered
           radius="lg"
+          zIndex={2000}
         >
           <InteractiveStreetView lat={lat} lon={lon} height={420} />
         </Modal>
