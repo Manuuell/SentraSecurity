@@ -15,11 +15,13 @@ import {
   Text,
   TextInput,
 } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import {
   BatteryMedium,
   Clock,
   Compass,
   Gauge,
+  History,
   LocateFixed,
   Maximize2,
   Pencil,
@@ -34,6 +36,7 @@ import { STATUS_META } from "../lib/status";
 import { fmtSpeed, timeAgo } from "../lib/format";
 import { useUpdateVehicle, useVehicleStreetview } from "../api/vehicles";
 import { loadGoogleMaps } from "../lib/googleMaps";
+import { TrackHistory } from "./TrackHistory";
 
 interface Props {
   vehicle: Vehicle;
@@ -348,6 +351,8 @@ export function VehicleDetailPanel({
 }: Props) {
   const meta = STATUS_META[status];
   const [editing, setEditing] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const isMobile = useMediaQuery("(max-width: 768px)");
 
   return (
     <Paper className="detail-panel" radius="lg" shadow="md" p="md" style={{ border: "1px solid var(--border)" }}>
@@ -445,6 +450,33 @@ export function VehicleDetailPanel({
           Sin recorrido registrado hoy.
         </Text>
       )}
+
+      <Button
+        size="xs"
+        radius="md"
+        variant="light"
+        fullWidth
+        mt="xs"
+        leftSection={<History size={14} />}
+        onClick={() => setHistoryOpen(true)}
+      >
+        Ver histórico de recorrido
+      </Button>
+
+      {/* Histórico completo (rango de fechas + reproducción), el mismo del
+          panel admin; el backend limita al cliente a sus propios vehículos */}
+      <Modal
+        opened={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        title={`Histórico — ${vehicle.name || vehicle.id}`}
+        size="xl"
+        centered
+        radius="lg"
+        zIndex={2000}
+        fullScreen={isMobile}
+      >
+        {historyOpen && <TrackHistory vehicleId={vehicle.id} mapHeight={isMobile ? 320 : 420} />}
+      </Modal>
 
       <EditModal vehicle={vehicle} opened={editing} onClose={() => setEditing(false)} />
     </Paper>

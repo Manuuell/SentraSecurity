@@ -89,14 +89,23 @@ async def get_vehicle(
 async def update_vehicle(
     device_id: str,
     body: dict,
-    user: User = Depends(require_role(ROLE_ADMIN, ROLE_OPERATOR)),
+    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Admin/operador editan todo; el cliente puede renombrar y cambiar la
+    placa de SUS vehículos, pero no tocar el canal de comandos
+    (sim_phone / command_password), que es la puerta al corte de motor."""
     vehicle = await _require_vehicle(db, device_id, user)
-    for field in ("name", "plate", "sim_phone"):
+
+    is_staff = user.role in (ROLE_ADMIN, ROLE_OPERATOR)
+    if not is_staff and ({"sim_phone", "command_password"} & set(body)):
+        raise HTTPException(403, "No tienes permiso para editar esos campos")
+
+    editable = ("name", "plate", "sim_phone") if is_staff else ("name", "plate")
+    for field in editable:
         if field in body:
             setattr(vehicle, field, body[field])
-    if "command_password" in body:
+    if is_staff and "command_password" in body:
         pw = (body["command_password"] or "").strip()
         vehicle.command_password_enc = encrypt_secret(pw) if pw else None
     vehicle.updated_at = datetime.now(timezone.utc)

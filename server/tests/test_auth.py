@@ -81,10 +81,37 @@ def test_cliente_no_accede_a_moto_ajena(client):
     assert client.get("/api/vehicles/2222222222/positions", headers=bearer(tokens)).status_code == 404
 
 
-def test_cliente_no_puede_editar_vehiculo(client):
+def test_cliente_edita_nombre_y_placa_de_su_moto(client):
     tokens = login(client, "cliente@test.local", "cliente12345")
-    r = client.patch("/api/vehicles/1111111111", json={"name": "X"}, headers=bearer(tokens))
-    assert r.status_code == 403
+    r = client.patch(
+        "/api/vehicles/1111111111",
+        json={"name": "Mi moto", "plate": "XYZ99Z"},
+        headers=bearer(tokens),
+    )
+    assert r.status_code == 200
+    assert r.json()["name"] == "Mi moto"
+    assert r.json()["plate"] == "XYZ99Z"
+    # Restaurar para no afectar otros tests de la sesión
+    admin = login(client, "admin@test.local", "admin12345")
+    client.patch(
+        "/api/vehicles/1111111111",
+        json={"name": "Moto asignada", "plate": "AAA11A"},
+        headers=bearer(admin),
+    )
+
+
+def test_cliente_no_toca_canal_de_comandos(client):
+    # sim_phone y command_password son la puerta al corte de motor: solo staff
+    tokens = login(client, "cliente@test.local", "cliente12345")
+    for body in ({"sim_phone": "+57 300 000 0000"}, {"command_password": "1234"}):
+        r = client.patch("/api/vehicles/1111111111", json=body, headers=bearer(tokens))
+        assert r.status_code == 403
+
+
+def test_cliente_no_edita_moto_ajena(client):
+    tokens = login(client, "cliente@test.local", "cliente12345")
+    r = client.patch("/api/vehicles/2222222222", json={"name": "X"}, headers=bearer(tokens))
+    assert r.status_code == 404  # no se revela que existe
 
 
 def test_stats_por_rol(client):
