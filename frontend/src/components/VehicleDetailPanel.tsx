@@ -80,6 +80,9 @@ function CenterPin() {
         transform: "translate(-50%, -100%)",
         pointerEvents: "none",
         filter: "drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45))",
+        // Por encima de las capas internas del panorama de Google (z-index 1+),
+        // que de lo contrario lo tapan en cuanto terminan de pintar.
+        zIndex: 1000,
       }}
     >
       <svg width="38" height="38" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
