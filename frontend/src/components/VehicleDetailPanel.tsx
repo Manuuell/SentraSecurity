@@ -136,10 +136,18 @@ function pitchTo(distance: number): number {
 function InteractiveStreetView({ lat, lon, height = 180 }: { lat: number; lon: number; height?: number }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [failed, setFailed] = useState(false);
+  // El Marker nativo de Google sobre un panorama no se pinta hasta la primera
+  // interacción del usuario (bug conocido de la API, confirmado aquí en
+  // producción tras varios intentos de forzar el repintado). Como la cámara se
+  // apunta EXACTO al punto del GPS, el punto queda en el centro de la vista:
+  // este pin propio cubre el hueco inicial y se oculta cuando el usuario
+  // mueve la vista — momento en el que el Marker nativo ya aparece solo.
+  const [showCenterPin, setShowCenterPin] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     setFailed(false);
+    setShowCenterPin(true);
     window.gm_authFailure = () => {
       if (!cancelled) setFailed(true);
     };
@@ -165,26 +173,26 @@ function InteractiveStreetView({ lat, lon, height = 180 }: { lat: number; lon: n
             fullscreenControl: false,
             motionTracking: false,
           });
-          // optimized:false renderiza el pin como elemento DOM (no canvas),
-          // que es lo único fiable sobre panorámicas. AdvancedMarkerElement
-          // no es alternativa: no soporta Street View.
-          const marker = new google.maps.Marker({
+          // Se mantiene el Marker nativo porque, tras la primera interacción,
+          // es él quien sigue el punto correctamente al mirar alrededor.
+          // (AdvancedMarkerElement no es alternativa: no soporta Street View.)
+          new google.maps.Marker({
             position,
             map: panorama,
             title: "Ubicación del GPS",
             optimized: false,
           });
-          // Si el marcador se creó antes de que el pano terminara de montarse,
-          // su proyección queda calculada con geometría vieja y no se pinta:
-          // cuando el pano está listo, se re-adjunta y se fuerza un resize.
-          google.maps.event.addListenerOnce(panorama, "pano_changed", () => {
-            window.setTimeout(() => {
-              if (cancelled) return;
-              google.maps.event.trigger(panorama, "resize");
-              marker.setMap(null);
-              marker.setMap(panorama);
-              panorama.setPov(pov);
-            }, 150);
+          // Ocultar el pin central solo cuando el POV cambia DE VERDAD
+          // (arrastre del usuario); los eventos de inicialización llegan con
+          // el mismo POV y se ignoran. El zoom no mueve el centro, así que
+          // el pin sigue siendo válido mientras no se arrastre.
+          panorama.addListener("pov_changed", () => {
+            if (cancelled) return;
+            const p = panorama.getPov();
+            const headingDiff = Math.abs((((p.heading - pov.heading) % 360) + 540) % 360 - 180);
+            if (headingDiff > 1 || Math.abs(p.pitch - pov.pitch) > 1) {
+              setShowCenterPin(false);
+            }
           });
         });
       })
@@ -204,7 +212,34 @@ function InteractiveStreetView({ lat, lon, height = 180 }: { lat: number; lon: n
       </Text>
     );
   }
-  return <div ref={containerRef} style={{ height, borderRadius: 12, overflow: "hidden" }} />;
+  return (
+    <div style={{ position: "relative", height, borderRadius: 12, overflow: "hidden" }}>
+      <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
+      {showCenterPin && (
+        <div
+          aria-hidden
+          style={{
+            position: "absolute",
+            left: "50%",
+            top: "50%",
+            transform: "translate(-50%, -100%)",
+            pointerEvents: "none",
+            filter: "drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45))",
+          }}
+        >
+          <svg width="38" height="38" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
+              fill="#EA4335"
+              stroke="#fff"
+              strokeWidth="1"
+            />
+            <circle cx="12" cy="9" r="2.5" fill="#fff" />
+          </svg>
+        </div>
+      )}
+    </div>
+  );
 }
 
 /** Miniatura estática siempre visible; si hay key de cliente y posición
