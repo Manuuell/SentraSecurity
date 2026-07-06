@@ -143,3 +143,30 @@ def test_geofence_crud_rbac(client):
         "name": "Mala", "kind": "polygon", "geometry": {"points": [[10.0, -75.0]]},
     })
     assert r.status_code == 400, r.text
+
+
+def test_borrar_y_recrear_misma_moto(client):
+    """Regresión: al borrar una geocerca sus vínculos deben irse con ella.
+    Si quedan huérfanos, recrear una geocerca sobre la misma moto revienta con
+    500 (choque de PK geofence_id+vehicle_id cuando el id se reutiliza)."""
+    admin = bearer(login(client, "admin@test.local", "admin12345"))
+
+    r = client.post("/api/geofences", headers=admin, json={
+        "name": "Casa", "kind": "circle", "geometry": {"center": [10.0, -75.0], "radius_m": 150},
+        "vehicles": [{"vehicle_id": "1111111111"}],
+    })
+    assert r.status_code == 201, r.text
+    gid = r.json()["id"]
+
+    assert client.delete(f"/api/geofences/{gid}", headers=admin).status_code == 204
+
+    # Recrear sobre la MISMA moto: antes daba 500 por el vínculo huérfano
+    r = client.post("/api/geofences", headers=admin, json={
+        "name": "Trabajo", "kind": "circle", "geometry": {"center": [10.1, -75.1], "radius_m": 200},
+        "vehicles": [{"vehicle_id": "1111111111"}],
+    })
+    assert r.status_code == 201, r.text
+    assert r.json()["vehicles"][0]["vehicle_id"] == "1111111111"
+
+    # Limpieza para no dejar geocercas creadas a otros tests de la sesión
+    client.delete(f"/api/geofences/{r.json()['id']}", headers=admin)

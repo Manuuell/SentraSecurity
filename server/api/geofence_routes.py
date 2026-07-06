@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import or_, select
+from sqlalchemy import delete as sql_delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from server.auth import allowed_vehicle_ids, get_current_user
@@ -228,6 +228,12 @@ async def delete_geofence(
     db: AsyncSession = Depends(get_db),
 ):
     gf = await _require_geofence(db, gid, user, manage=True)
+    # Borrar los vínculos a mano: no hay relación ORM Geofence→GeofenceVehicle,
+    # así que db.delete(gf) no arrastra los hijos, y el ondelete=CASCADE del FK
+    # solo lo aplica el motor si tiene FKs activas (SQLite las trae apagadas).
+    # Sin esto quedan filas huérfanas en geofence_vehicles y, al reutilizarse el
+    # id de geocerca, chocan con la PK (geofence_id, vehicle_id) → 500.
+    await db.execute(sql_delete(GeofenceVehicle).where(GeofenceVehicle.geofence_id == gid))
     await db.delete(gf)
     await db.commit()
 
