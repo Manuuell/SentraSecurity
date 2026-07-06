@@ -140,14 +140,18 @@ function InteractiveStreetView({ lat, lon, height = 180 }: { lat: number; lon: n
   // interacción del usuario (bug conocido de la API, confirmado aquí en
   // producción tras varios intentos de forzar el repintado). Como la cámara se
   // apunta EXACTO al punto del GPS, el punto queda en el centro de la vista:
-  // este pin propio cubre el hueco inicial y se oculta cuando el usuario
-  // mueve la vista — momento en el que el Marker nativo ya aparece solo.
+  // este pin propio cubre el hueco inicial y se oculta solo cuando detectamos
+  // un arrastre real del usuario (pointer down + move) — momento en el que el
+  // Marker nativo ya aparece solo. No sirve escuchar pov_changed: Google lo
+  // dispara también durante la inicialización con POVs intermedios.
   const [showCenterPin, setShowCenterPin] = useState(true);
+  const pointerDownRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
     setFailed(false);
     setShowCenterPin(true);
+    pointerDownRef.current = false;
     window.gm_authFailure = () => {
       if (!cancelled) setFailed(true);
     };
@@ -182,18 +186,6 @@ function InteractiveStreetView({ lat, lon, height = 180 }: { lat: number; lon: n
             title: "Ubicación del GPS",
             optimized: false,
           });
-          // Ocultar el pin central solo cuando el POV cambia DE VERDAD
-          // (arrastre del usuario); los eventos de inicialización llegan con
-          // el mismo POV y se ignoran. El zoom no mueve el centro, así que
-          // el pin sigue siendo válido mientras no se arrastre.
-          panorama.addListener("pov_changed", () => {
-            if (cancelled) return;
-            const p = panorama.getPov();
-            const headingDiff = Math.abs((((p.heading - pov.heading) % 360) + 540) % 360 - 180);
-            if (headingDiff > 1 || Math.abs(p.pitch - pov.pitch) > 1) {
-              setShowCenterPin(false);
-            }
-          });
         });
       })
       .catch(() => {
@@ -213,7 +205,22 @@ function InteractiveStreetView({ lat, lon, height = 180 }: { lat: number; lon: n
     );
   }
   return (
-    <div style={{ position: "relative", height, borderRadius: 12, overflow: "hidden" }}>
+    <div
+      style={{ position: "relative", height, borderRadius: 12, overflow: "hidden" }}
+      // Fase de captura: los eventos llegan aunque Google los maneje adentro.
+      onPointerDownCapture={() => {
+        pointerDownRef.current = true;
+      }}
+      onPointerMoveCapture={() => {
+        if (pointerDownRef.current) setShowCenterPin(false);
+      }}
+      onPointerUpCapture={() => {
+        pointerDownRef.current = false;
+      }}
+      onPointerCancelCapture={() => {
+        pointerDownRef.current = false;
+      }}
+    >
       <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
       {showCenterPin && (
         <div
