@@ -12,7 +12,8 @@ from sqlalchemy import select, desc
 
 from server.parser import parse_packet, get_active_alarms, GPSPacket
 from server.database import AsyncSessionLocal
-from server.models import Vehicle, Position, Alarm, user_vehicles
+from server.models import Vehicle, Position, Alarm, user_vehicles, EVENT_GEOFENCE_ENTER
+from server.geofences import evaluate_geofences
 from server.push import send_push_to_users
 from server.ws import manager as ws_manager
 
@@ -139,8 +140,15 @@ async def _handle_packet(packet: GPSPacket) -> None:
                 new_alarm_types.append(alarm_type)
                 logger.warning("ALARM %s — device %s", alarm_type, packet.device_id)
 
+            # Geocercas (Fase 5): transiciones entrar/salir sobre la posición nueva
+            geofence_events: list[dict] = []
+            if packet.valid:
+                geofence_events = await evaluate_geofences(
+                    session, packet.device_id, packet.latitude, packet.longitude, packet.timestamp
+                )
+
             owner_ids: list[int] = []
-            if new_alarm_types:
+            if new_alarm_types or geofence_events:
                 owners = await session.execute(
                     select(user_vehicles.c.user_id).where(user_vehicles.c.vehicle_id == packet.device_id)
                 )
@@ -148,7 +156,7 @@ async def _handle_packet(packet: GPSPacket) -> None:
 
     # Push a los dueños del vehículo (fuera de la transacción: nunca debe
     # bloquearla ni tumbarla si FCM falla — ver server/push.py).
-    if new_alarm_types and owner_ids:
+    if owner_ids and (new_alarm_types or geofence_events):
         async with AsyncSessionLocal() as push_session:
             for alarm_type in new_alarm_types:
                 await send_push_to_users(
@@ -156,6 +164,14 @@ async def _handle_packet(packet: GPSPacket) -> None:
                     title=ALARM_PUSH_TITLE.get(alarm_type, "Alerta de tu moto"),
                     body=f"{vehicle.name or vehicle.id} — revisa la app para más detalles.",
                     data={"vehicle_id": vehicle.id, "alarm_type": alarm_type},
+                )
+            for ev in geofence_events:
+                entering = ev["alarm_type"] == EVENT_GEOFENCE_ENTER
+                await send_push_to_users(
+                    push_session, owner_ids,
+                    title="Tu moto entró a una zona" if entering else "Tu moto salió de una zona",
+                    body=f"{vehicle.name or vehicle.id} — {ev['geofence']}",
+                    data={"vehicle_id": vehicle.id, "alarm_type": ev["alarm_type"], "geofence": ev["geofence"]},
                 )
 
     # Broadcast real-time update via WebSocket (filtrado por permisos)

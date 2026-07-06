@@ -6,7 +6,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from sqlalchemy import (
     Column, String, Float, Integer, Boolean,
-    DateTime, ForeignKey, Table, Text, Index,
+    DateTime, ForeignKey, Table, Text, Index, JSON,
 )
 from sqlalchemy.orm import DeclarativeBase, relationship
 
@@ -191,3 +191,45 @@ class Alarm(Base):
     notes       = Column(Text, nullable=True)
 
     vehicle = relationship("Vehicle", back_populates="alarms")
+
+
+# ---------------------------------------------------------------------------
+# Geocercas (Fase 5) — círculos y polígonos; eventos entrar/salir por moto
+# ---------------------------------------------------------------------------
+
+GEOFENCE_CIRCLE = "circle"
+GEOFENCE_POLYGON = "polygon"
+GEOFENCE_KINDS = (GEOFENCE_CIRCLE, GEOFENCE_POLYGON)
+
+# Tipos de evento de geocerca (se guardan como Alarm.alarm_type, reusando el
+# mismo flujo de notificaciones/push del rastreador).
+EVENT_GEOFENCE_ENTER = "GEOFENCE_ENTER"
+EVENT_GEOFENCE_EXIT = "GEOFENCE_EXIT"
+
+
+class Geofence(Base):
+    __tablename__ = "geofences"
+
+    id         = Column(Integer, primary_key=True, autoincrement=True)
+    name       = Column(String(120), nullable=False, default="")
+    color      = Column(String(20), nullable=False, default="#2563eb")
+    kind       = Column(String(20), nullable=False)   # circle | polygon
+    # circle:  {"center": [lat, lon], "radius_m": <float>}
+    # polygon: {"points": [[lat, lon], ...]}   (portable JSON: JSONB en PG, TEXT/JSON en SQLite)
+    geometry   = Column(JSON, nullable=False)
+    is_active  = Column(Boolean, nullable=False, default=True)
+    created_by = Column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=utcnow)
+    updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
+class GeofenceVehicle(Base):
+    __tablename__ = "geofence_vehicles"
+
+    geofence_id  = Column(ForeignKey("geofences.id", ondelete="CASCADE"), primary_key=True)
+    vehicle_id   = Column(ForeignKey("vehicles.id", ondelete="CASCADE"), primary_key=True)
+    notify_enter = Column(Boolean, nullable=False, default=True)
+    notify_exit  = Column(Boolean, nullable=False, default=True)
+    # Estado dentro/fuera para detectar transiciones en la ingesta.
+    # None = aún sin evaluar (se siembra sin emitir evento).
+    last_inside  = Column(Boolean, nullable=True)
