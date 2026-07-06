@@ -236,16 +236,57 @@ body {
     0 18px 40px -24px rgba(15, 23, 42, 0.16);
 }
 
+/* Barra de navegación inferior del admin: oculta en escritorio,
+   reemplaza a la barra lateral en móvil (iconos + etiqueta, siempre
+   visible y al alcance del pulgar). */
+.admin-bottomnav {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .admin-nav {
-    width: 68px;
-  }
-  .admin-nav .admin-nav-item span,
-  .admin-nav .admin-logo + div {
     display: none;
+  }
+  .admin-header {
+    padding: 14px 16px;
   }
   .admin-content {
     padding: 16px;
+    /* Deja sitio para la barra inferior fija (+ notch inferior de iOS) */
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
+  }
+  .admin-bottomnav {
+    display: flex;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1200;
+    background: var(--ad-glass);
+    backdrop-filter: blur(22px) saturate(160%);
+    -webkit-backdrop-filter: blur(22px) saturate(160%);
+    border-top: 1px solid var(--ad-glass-border);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+  }
+  .admin-bottomnav-item {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 6px 2px;
+    border-radius: 10px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .admin-bottomnav-item.is-active {
+    color: var(--ad-accent-strong);
+    background: var(--ad-accent-soft);
   }
 }
 

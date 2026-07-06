@@ -1,5 +1,5 @@
 import { Navigate, NavLink, Outlet, useLocation } from "react-router-dom";
-import { Group, Text, UnstyledButton } from "@mantine/core";
+import { ActionIcon, Group, Text, Tooltip, UnstyledButton } from "@mantine/core";
 import {
   Bell,
   LayoutDashboard,
@@ -15,6 +15,8 @@ import { useAuth } from "../auth/AuthProvider";
 interface NavItem {
   to: string;
   label: string;
+  /** Etiqueta corta para la barra inferior móvil (cuando la normal no cabe). */
+  short?: string;
   icon: ReactNode;
   end?: boolean;
 }
@@ -23,7 +25,7 @@ const NAV: NavItem[] = [
   { to: "/admin", label: "Panel", icon: <LayoutDashboard size={18} />, end: true },
   { to: "/admin/devices", label: "Dispositivos", icon: <Smartphone size={18} /> },
   { to: "/admin/events", label: "Alertas", icon: <Bell size={18} /> },
-  { to: "/admin/provisioning", label: "Aprovisionamiento", icon: <Radio size={18} /> },
+  { to: "/admin/provisioning", label: "Aprovisionamiento", short: "Aprovisionar", icon: <Radio size={18} /> },
   { to: "/admin/users", label: "Usuarios", icon: <Users size={18} /> },
 ];
 
@@ -88,14 +90,57 @@ export function AdminLayout() {
 
       <div className="admin-main">
         <header className="admin-header">
-          <Text fw={700} fz={20}>
-            {title}
-          </Text>
+          <Group justify="space-between" wrap="nowrap">
+            <Text fw={700} fz={20} truncate>
+              {title}
+            </Text>
+            {/* En móvil la barra lateral desaparece: mapa y salir van aquí */}
+            <Group gap={8} wrap="nowrap" className="mobile-only">
+              <Tooltip label="Volver al mapa">
+                <ActionIcon
+                  component={NavLink}
+                  to="/"
+                  variant="default"
+                  size={36}
+                  radius="xl"
+                  aria-label="Volver al mapa"
+                >
+                  <MapPin size={17} />
+                </ActionIcon>
+              </Tooltip>
+              <Tooltip label="Cerrar sesión">
+                <ActionIcon
+                  variant="default"
+                  size={36}
+                  radius="xl"
+                  aria-label="Cerrar sesión"
+                  onClick={() => logout()}
+                >
+                  <LogOut size={17} />
+                </ActionIcon>
+              </Tooltip>
+            </Group>
+          </Group>
         </header>
         <div className="admin-content">
           <Outlet />
         </div>
       </div>
+
+      {/* Navegación inferior (solo móvil): las 5 secciones siempre a la vista */}
+      <nav className="admin-bottomnav">
+        {NAV.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.end}
+            className={({ isActive }) => `admin-bottomnav-item${isActive ? " is-active" : ""}`}
+          >
+            {item.icon}
+            <span>{item.short ?? item.label}</span>
+          </NavLink>
+        ))}
+      </nav>
     </div>
   );
 }
