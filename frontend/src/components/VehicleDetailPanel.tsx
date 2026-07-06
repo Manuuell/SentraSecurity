@@ -165,19 +165,26 @@ function InteractiveStreetView({ lat, lon, height = 180 }: { lat: number; lon: n
             fullscreenControl: false,
             motionTracking: false,
           });
-          new google.maps.Marker({ position, map: panorama, title: "Ubicación del GPS" });
-          // El marcador no se reproyecta la primera vez si el POV no cambia de
-          // verdad (Google solo redibuja en el evento pov_changed): lo movemos
-          // un poco y lo devolvemos a su lugar para forzar ese evento.
-          google.maps.event.addListenerOnce(panorama, "status_changed", () => {
-            if (cancelled) return;
+          // optimized:false renderiza el pin como elemento DOM (no canvas),
+          // que es lo único fiable sobre panorámicas. AdvancedMarkerElement
+          // no es alternativa: no soporta Street View.
+          const marker = new google.maps.Marker({
+            position,
+            map: panorama,
+            title: "Ubicación del GPS",
+            optimized: false,
+          });
+          // Si el marcador se creó antes de que el pano terminara de montarse,
+          // su proyección queda calculada con geometría vieja y no se pinta:
+          // cuando el pano está listo, se re-adjunta y se fuerza un resize.
+          google.maps.event.addListenerOnce(panorama, "pano_changed", () => {
             window.setTimeout(() => {
               if (cancelled) return;
-              panorama.setPov({ heading: pov.heading + 1, pitch: pov.pitch });
-              window.setTimeout(() => {
-                if (!cancelled) panorama.setPov(pov);
-              }, 80);
-            }, 250);
+              google.maps.event.trigger(panorama, "resize");
+              marker.setMap(null);
+              marker.setMap(panorama);
+              panorama.setPov(pov);
+            }, 150);
           });
         });
       })
@@ -208,6 +215,20 @@ function StreetViewPreview({ vehicle }: { vehicle: Vehicle }) {
   const lon = vehicle.last_lon;
   const canExplore = hasClientKey && lat != null && lon != null;
   const [exploring, setExploring] = useState(false);
+  // El panorama no puede inicializarse mientras el modal sigue animándose:
+  // el transform de la transición rompe la proyección del marcador (queda
+  // calculada con la geometría escalada y el pin no se pinta hasta que el
+  // usuario mueve la vista). Se monta solo cuando la transición terminó.
+  const [modalSettled, setModalSettled] = useState(false);
+
+  useEffect(() => {
+    if (!exploring) {
+      setModalSettled(false);
+      return;
+    }
+    const t = window.setTimeout(() => setModalSettled(true), 300);
+    return () => window.clearTimeout(t);
+  }, [exploring]);
 
   return (
     <>
@@ -241,8 +262,13 @@ function StreetViewPreview({ vehicle }: { vehicle: Vehicle }) {
           centered
           radius="lg"
           zIndex={2000}
+          transitionProps={{ duration: 200 }}
         >
-          <InteractiveStreetView lat={lat} lon={lon} height={420} />
+          {modalSettled ? (
+            <InteractiveStreetView lat={lat} lon={lon} height={420} />
+          ) : (
+            <Skeleton h={420} radius="md" />
+          )}
         </Modal>
       )}
     </>
