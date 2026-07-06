@@ -1,3 +1,12 @@
+declare global {
+  interface Window {
+    /** Hook documentado de Google: se llama cuando la key falla por auth
+     * (no activada, sin billing, referrer no permitido, etc.) — a diferencia
+     * de un script error, esto pasa DESPUÉS de que el script ya cargó bien. */
+    gm_authFailure?: () => void;
+  }
+}
+
 let loadPromise: Promise<void> | null = null;
 
 /** Carga el script de Google Maps JS una sola vez (cacheado entre componentes). */

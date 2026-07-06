@@ -104,6 +104,9 @@ function InteractiveStreetView({ lat, lon }: { lat: number; lon: number }) {
   useEffect(() => {
     let cancelled = false;
     setFailed(false);
+    window.gm_authFailure = () => {
+      if (!cancelled) setFailed(true);
+    };
 
     loadGoogleMaps()
       .then(() => {
