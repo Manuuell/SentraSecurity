@@ -111,6 +111,26 @@ function bearingTo(from: { lat: number; lng: number }, to: { lat: number; lng: n
   return (toDeg(Math.atan2(y, x)) + 360) % 360;
 }
 
+/** Distancia en metros entre dos puntos (haversine). */
+function distanceMeters(from: { lat: number; lng: number }, to: { lat: number; lng: number }): number {
+  const R = 6371000;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(to.lat - from.lat);
+  const dLon = toRad(to.lng - from.lng);
+  const a =
+    Math.sin(dLat / 2) ** 2 + Math.cos(toRad(from.lat)) * Math.cos(toRad(to.lat)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/** Inclinación hacia abajo para que el punto del GPS (a nivel de suelo) quede
+ * en cuadro: la cámara de Street View está a ~2.5m de altura, así que entre
+ * más cerca esté el punto, más hay que mirar hacia abajo. */
+function pitchTo(distance: number): number {
+  const toDeg = (r: number) => (r * 180) / Math.PI;
+  const cameraHeight = 2.5;
+  return -Math.min(60, toDeg(Math.atan2(cameraHeight, Math.max(distance, 3))));
+}
+
 /** Panorama interactivo (arrastrar/mirar alrededor) vía Google Maps JS,
  * cargado solo en el navegador con una key restringida por dominio. */
 function InteractiveStreetView({ lat, lon, height = 180 }: { lat: number; lon: number; height?: number }) {
@@ -136,15 +156,22 @@ function InteractiveStreetView({ lat, lon, height = 180 }: { lat: number; lon: n
             return;
           }
           const panoLatLng = data.location.latLng;
-          const heading = bearingTo({ lat: panoLatLng.lat(), lng: panoLatLng.lng() }, position);
+          const panoPos = { lat: panoLatLng.lat(), lng: panoLatLng.lng() };
+          const pov = { heading: bearingTo(panoPos, position), pitch: pitchTo(distanceMeters(panoPos, position)) };
           const panorama = new google.maps.StreetViewPanorama(containerRef.current, {
             pano: data.location.pano,
-            pov: { heading, pitch: 0 },
+            pov,
             addressControl: false,
             fullscreenControl: false,
             motionTracking: false,
           });
           new google.maps.Marker({ position, map: panorama, title: "Ubicación del GPS" });
+          // El marcador a veces no se reproyecta hasta que la vista cambia;
+          // forzamos un pequeño refresco una vez la panorámica ya cargó.
+          google.maps.event.addListenerOnce(panorama, "status_changed", () => {
+            if (cancelled) return;
+            window.setTimeout(() => panorama.setPov(pov), 200);
+          });
         });
       })
       .catch(() => {
