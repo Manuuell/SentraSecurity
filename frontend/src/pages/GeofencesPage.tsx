@@ -20,15 +20,18 @@ import { ArrowLeft, Pencil, Shapes, Trash2 } from "lucide-react";
 import {
   Circle,
   MapContainer,
+  Marker,
   Polygon,
   TileLayer,
   Tooltip as LeafletTooltip,
   ZoomControl,
   useMap,
 } from "react-leaflet";
+import { latLngBounds } from "leaflet";
 import "@geoman-io/leaflet-geoman-free";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import { useVehicles } from "../api/vehicles";
+import { vehicleIcon } from "../components/LiveMap";
 import {
   useCreateGeofence,
   useDeleteGeofence,
@@ -105,6 +108,59 @@ function DrawControls({ onDraw }: { onDraw: (d: Draft) => void }) {
   return null;
 }
 
+/** Marcadores de la última posición conocida de cada moto, como referencia
+ * para saber dónde dibujar la geocerca (misma flecha que el mapa en vivo). */
+function VehicleMarkers({ vehicles }: { vehicles: Vehicle[] }) {
+  return (
+    <>
+      {vehicles
+        .filter((v) => v.last_lat != null && v.last_lon != null)
+        .map((v) => (
+          <Marker
+            key={v.id}
+            position={[v.last_lat!, v.last_lon!]}
+            icon={vehicleIcon("#64748b", v.last_direction ?? 0, false)}
+            interactive={false}
+          >
+            {/* Permanente: como el marcador no es interactivo (para no estorbar
+                al dibujar), el nombre debe verse sin necesidad de hover. */}
+            <LeafletTooltip permanent direction="top" offset={[0, -14]}>
+              {v.name || v.id}
+            </LeafletTooltip>
+          </Marker>
+        ))}
+    </>
+  );
+}
+
+/** Al entrar, encuadra el mapa sobre las motos (una → zoom cercano; varias →
+ * bounds) para no empezar en la vista genérica de la ciudad. Se hace una sola
+ * vez: después no reencuadra aunque lleguen posiciones nuevas por el WS. */
+function FitToVehicles({ vehicles }: { vehicles: Vehicle[] }) {
+  const map = useMap();
+  const done = useRef(false);
+
+  useEffect(() => {
+    if (done.current) return;
+    const withPos = vehicles.filter((v) => v.last_lat != null && v.last_lon != null);
+    if (withPos.length === 0) return;
+    done.current = true;
+    // El mapa está en un contenedor flex que puede medirse tarde: sin esto,
+    // fitBounds encuadra con dimensiones viejas y las motos quedan al borde.
+    map.invalidateSize();
+    if (withPos.length === 1) {
+      map.setView([withPos[0].last_lat!, withPos[0].last_lon!], 15);
+    } else {
+      map.fitBounds(
+        latLngBounds(withPos.map((v) => [v.last_lat!, v.last_lon!] as [number, number])),
+        { padding: [56, 56], maxZoom: 15 },
+      );
+    }
+  }, [vehicles, map]);
+
+  return null;
+}
+
 export default function GeofencesPage() {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const geofencesQ = useGeofences();
@@ -160,6 +216,8 @@ export default function GeofencesPage() {
             />
             <ZoomControl position="bottomright" />
             <DrawControls onDraw={setDraft} />
+            <FitToVehicles vehicles={vehicles} />
+            <VehicleMarkers vehicles={vehicles} />
             {geofences.map((gf) => {
               const opts = {
                 color: gf.color,
