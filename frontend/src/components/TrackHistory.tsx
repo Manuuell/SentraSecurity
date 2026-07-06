@@ -3,6 +3,7 @@ import {
   ActionIcon,
   Group,
   Loader,
+  Popover,
   SegmentedControl,
   SimpleGrid,
   Skeleton,
@@ -12,7 +13,7 @@ import {
   TextInput,
 } from "@mantine/core";
 import { useQuery } from "@tanstack/react-query";
-import { Pause, Play, RotateCcw } from "lucide-react";
+import { Info, Pause, Play, RotateCcw } from "lucide-react";
 import { CircleMarker, MapContainer, Marker, Polyline, TileLayer, useMap } from "react-leaflet";
 import { usePositions } from "../api/vehicles";
 import { fmtDateTime, parseTs } from "../lib/format";
@@ -44,6 +45,27 @@ function haversineKm(a: TrackPoint, b: TrackPoint): number {
   const h =
     Math.sin(dLat / 2) ** 2 + Math.cos(la) * Math.cos(lb) * Math.sin(dLon / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+/** Radio (m) del ruido del GPS: por debajo de esto, un punto se considera la
+ * misma parada, no movimiento. Una moto detenida no reporta la misma
+ * coordenada: dispersa unos metros en cada lectura, y OSRM interpreta esa
+ * dispersión como un recorrido (une los puntos por las calles). */
+const MIN_MOVE_M = 20;
+
+/** Descarta el "jitter" de GPS quieto: conserva un punto solo si se alejó más
+ * de MIN_MOVE_M del último conservado. Así una moto detenida colapsa a un solo
+ * punto y ni el trazo crudo ni el ajuste a vías fabrican una ruta falsa; los
+ * viajes reales se conservan (sus puntos superan el umbral enseguida). */
+function compactStationary(track: TrackPoint[]): TrackPoint[] {
+  if (track.length < 2) return track;
+  const out: TrackPoint[] = [track[0]];
+  for (let i = 1; i < track.length; i += 1) {
+    if (haversineKm(out[out.length - 1], track[i]) * 1000 >= MIN_MOVE_M) {
+      out.push(track[i]);
+    }
+  }
+  return out;
 }
 
 function FitTrack({ points }: { points: [number, number][] }) {
@@ -86,7 +108,9 @@ export function TrackHistory({ vehicleId, mapHeight = 420 }: { vehicleId: string
   const [preset, setPreset] = useState<Preset>("today");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
-  const [snap, setSnap] = useState(true);
+  // Apagado por defecto: el ajuste a vías es útil solo cuando la moto se movió;
+  // el usuario lo activa a propósito (ver el botón de info junto al switch).
+  const [snap, setSnap] = useState(false);
 
   const [fromMs, toMs] = useMemo((): [number, number] => {
     const nowMs = Date.now();
@@ -108,11 +132,16 @@ export function TrackHistory({ vehicleId, mapHeight = 420 }: { vehicleId: string
   const positionsQ = usePositions(vehicleId || null, fromMs, toMs);
   const track = useMemo(() => positionsQ.data ?? [], [positionsQ.data]);
 
-  // Trazo crudo partido en segmentos donde hay huecos (sin líneas fantasma)
+  // Traza sin el ruido de GPS quieto: es la base de lo que se DIBUJA y se
+  // ajusta a vías. Las estadísticas de abajo siguen usando la traza cruda.
+  const movingTrack = useMemo(() => compactStationary(track), [track]);
+  const hasMovement = movingTrack.length >= 2;
+
+  // Trazo partido en segmentos donde hay huecos (sin líneas fantasma)
   const segments = useMemo(() => {
     const segs: TrackPoint[][] = [];
     let cur: TrackPoint[] = [];
-    for (const p of track) {
+    for (const p of movingTrack) {
       const prev = cur[cur.length - 1];
       if (
         prev &&
@@ -126,7 +155,7 @@ export function TrackHistory({ vehicleId, mapHeight = 420 }: { vehicleId: string
     }
     if (cur.length > 1) segs.push(cur);
     return segs;
-  }, [track]);
+  }, [movingTrack]);
 
   const rawSegments = useMemo(
     () => segments.map((seg) => seg.map((p) => [p.lat, p.lon] as [number, number])),
@@ -137,7 +166,7 @@ export function TrackHistory({ vehicleId, mapHeight = 420 }: { vehicleId: string
   // Se ajusta POR VIAJE (cada segmento entre huecos por separado): así las
   // ventanas de matching nunca cruzan huecos ni mezclan recorridos distintos.
   // La key se agrupa de a 30 puntos para no re-pedir con cada paquete del WS.
-  const matchBucket = Math.floor(track.length / 30);
+  const matchBucket = Math.floor(movingTrack.length / 30);
   const matchQ = useQuery({
     queryKey: ["match-roads", vehicleId, fromMs, toMs, matchBucket],
     queryFn: async () => {
@@ -155,7 +184,7 @@ export function TrackHistory({ vehicleId, mapHeight = 420 }: { vehicleId: string
       if (!matchedAny) throw new Error("OSRM no disponible");
       return out;
     },
-    enabled: snap && track.length >= 2,
+    enabled: snap && hasMovement,
     staleTime: Infinity,
     retry: 1,
     placeholderData: (prev) => prev,
@@ -163,6 +192,14 @@ export function TrackHistory({ vehicleId, mapHeight = 420 }: { vehicleId: string
 
   const displaySegments = snap && matchQ.data ? matchQ.data : rawSegments;
   const allPoints = useMemo(() => displaySegments.flat(), [displaySegments]);
+
+  // Sin desplazamiento real, el mapa se centra en la última posición conocida
+  // (la moto detenida) en vez de quedarse en la vista genérica de la ciudad.
+  const restingLatLng = useMemo<[number, number] | null>(
+    () => (track.length ? [track[track.length - 1].lat, track[track.length - 1].lon] : null),
+    [track],
+  );
+  const fitPoints = allPoints.length > 0 ? allPoints : restingLatLng ? [restingLatLng] : [];
 
   // ── Reproducción ──────────────────────────────────────────────
   const [idx, setIdx] = useState(0);
@@ -211,13 +248,37 @@ export function TrackHistory({ vehicleId, mapHeight = 420 }: { vehicleId: string
           Histórico de recorrido
         </Text>
         <Group gap="xs" wrap="wrap">
-          <Group gap={6} wrap="nowrap">
+          <Group gap={4} wrap="nowrap">
             <Switch
               size="xs"
               label="Ajustar a vías"
               checked={snap}
               onChange={(e) => setSnap(e.currentTarget.checked)}
             />
+            <Popover width={264} position="bottom" withArrow shadow="md">
+              <Popover.Target>
+                <ActionIcon
+                  variant="subtle"
+                  color="gray"
+                  size="sm"
+                  radius="xl"
+                  aria-label="¿Qué es ajustar a vías?"
+                >
+                  <Info size={15} />
+                </ActionIcon>
+              </Popover.Target>
+              <Popover.Dropdown>
+                <Text fz={12} fw={700} mb={4}>
+                  Ajustar a vías
+                </Text>
+                <Text fz={12} c="dimmed" lh={1.4}>
+                  Pega el recorrido del GPS a las calles reales para que se vea limpio siguiendo las
+                  vías, en vez de una línea quebrada. Útil cuando la moto se movió. Con la moto
+                  detenida conviene dejarlo apagado: el ruido del GPS puede dibujar una ruta que no
+                  ocurrió.
+                </Text>
+              </Popover.Dropdown>
+            </Popover>
             {snap && matchQ.isFetching && <Loader size={14} />}
           </Group>
           <SegmentedControl
@@ -280,7 +341,7 @@ export function TrackHistory({ vehicleId, mapHeight = 420 }: { vehicleId: string
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
             url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
           />
-          <FitTrack points={allPoints} />
+          <FitTrack points={fitPoints} />
           {displaySegments.map((seg, i) =>
             seg.length > 1 ? (
               <Polyline
@@ -304,10 +365,16 @@ export function TrackHistory({ vehicleId, mapHeight = 420 }: { vehicleId: string
               />
             </>
           )}
-          {current && (
+          {hasMovement && current && (
             <Marker
               position={[current.lat, current.lon]}
               icon={vehicleIcon("#2563eb", current.direction ?? 0, true)}
+            />
+          )}
+          {!hasMovement && restingLatLng && (
+            <Marker
+              position={restingLatLng}
+              icon={vehicleIcon("#2563eb", track[track.length - 1]?.direction ?? 0, true)}
             />
           )}
         </MapContainer>
@@ -316,9 +383,11 @@ export function TrackHistory({ vehicleId, mapHeight = 420 }: { vehicleId: string
       {/* Controles de reproducción */}
       {positionsQ.isLoading ? (
         <Skeleton h={40} mt="sm" radius="md" />
-      ) : track.length < 2 ? (
+      ) : !hasMovement ? (
         <Text fz={13} c="dimmed" ta="center" py="md">
-          Sin recorrido registrado en este rango. Prueba otro rango de fechas.
+          {track.length >= 2
+            ? "La moto estuvo detenida en este rango; no hay recorrido que reproducir."
+            : "Sin recorrido registrado en este rango. Prueba otro rango de fechas."}
         </Text>
       ) : (
         <Group mt="sm" gap="sm" wrap="nowrap">
