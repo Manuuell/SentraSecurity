@@ -214,6 +214,17 @@ function InteractiveStreetView({ lat, lon, height = 180 }: { lat: number; lon: n
             title: "Ubicación del GPS",
             optimized: false,
           });
+          // Respaldo de la detección de arrastre: si Google captura los
+          // eventos de puntero y los handlers de React no disparan, cualquier
+          // cambio real de POV pasado el arranque también oculta el pin propio
+          // (evita que se vean dos marcadores tras mover la vista). Los
+          // eventos de inicialización quedan fuera por el periodo de gracia.
+          window.setTimeout(() => {
+            if (cancelled) return;
+            panorama.addListener("pov_changed", () => {
+              if (!cancelled) setShowCenterPin(false);
+            });
+          }, 1500);
         });
       })
       .catch(() => {
