@@ -66,6 +66,35 @@ function Metric({ icon, label, value }: { icon: ReactNode; label: string; value:
 
 const iconProps = { size: 13, color: "var(--text-faint)" } as const;
 
+/** Pin rojo superpuesto en el centro de una vista de calle. Es válido porque
+ * la cámara (estática o interactiva) siempre se apunta hacia el punto del
+ * GPS, así que el punto queda centrado en el encuadre. */
+function CenterPin() {
+  return (
+    <div
+      aria-hidden
+      style={{
+        position: "absolute",
+        left: "50%",
+        top: "50%",
+        transform: "translate(-50%, -100%)",
+        pointerEvents: "none",
+        filter: "drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45))",
+      }}
+    >
+      <svg width="38" height="38" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path
+          d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
+          fill="#EA4335"
+          stroke="#fff"
+          strokeWidth="1"
+        />
+        <circle cx="12" cy="9" r="2.5" fill="#fff" />
+      </svg>
+    </div>
+  );
+}
+
 /** Versión estática (server-side, sin exponer key): usada cuando no hay
  * VITE_GOOGLE_MAPS_KEY configurada para el modo interactivo. */
 function StaticStreetView({ vehicleId }: { vehicleId: string }) {
@@ -86,14 +115,10 @@ function StaticStreetView({ vehicleId }: { vehicleId: string }) {
   if (isError || !url) return null;
 
   return (
-    <Image
-      src={url}
-      h={180}
-      radius="md"
-      mt="md"
-      fit="cover"
-      alt="Vista de calle de la última posición"
-    />
+    <Box pos="relative" mt="md">
+      <Image src={url} h={180} radius="md" fit="cover" alt="Vista de calle de la última posición" />
+      <CenterPin />
+    </Box>
   );
 }
 
@@ -222,29 +247,7 @@ function InteractiveStreetView({ lat, lon, height = 180 }: { lat: number; lon: n
       }}
     >
       <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
-      {showCenterPin && (
-        <div
-          aria-hidden
-          style={{
-            position: "absolute",
-            left: "50%",
-            top: "50%",
-            transform: "translate(-50%, -100%)",
-            pointerEvents: "none",
-            filter: "drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45))",
-          }}
-        >
-          <svg width="38" height="38" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path
-              d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"
-              fill="#EA4335"
-              stroke="#fff"
-              strokeWidth="1"
-            />
-            <circle cx="12" cy="9" r="2.5" fill="#fff" />
-          </svg>
-        </div>
-      )}
+      {showCenterPin && <CenterPin />}
     </div>
   );
 }
