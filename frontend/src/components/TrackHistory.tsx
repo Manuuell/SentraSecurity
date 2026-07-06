@@ -47,6 +47,19 @@ function haversineKm(a: TrackPoint, b: TrackPoint): number {
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
+/** Rumbo (0-360°, 0 = norte) de `a` hacia `b`, para orientar el marcador de
+ * reproducción según hacia dónde avanza sobre la línea dibujada. */
+function bearingDeg(a: [number, number], b: [number, number]): number {
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const toDeg = (r: number) => (r * 180) / Math.PI;
+  const dLon = toRad(b[1] - a[1]);
+  const lat1 = toRad(a[0]);
+  const lat2 = toRad(b[0]);
+  const y = Math.sin(dLon) * Math.cos(lat2);
+  const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+  return (toDeg(Math.atan2(y, x)) + 360) % 360;
+}
+
 /** Radio (m) del ruido del GPS: por debajo de esto, un punto se considera la
  * misma parada, no movimiento. Una moto detenida no reporta la misma
  * coordenada: dispersa unos metros en cada lectura, y OSRM interpreta esa
@@ -108,9 +121,9 @@ export function TrackHistory({ vehicleId, mapHeight = 420 }: { vehicleId: string
   const [preset, setPreset] = useState<Preset>("today");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
-  // Apagado por defecto: el ajuste a vías es útil solo cuando la moto se movió;
-  // el usuario lo activa a propósito (ver el botón de info junto al switch).
-  const [snap, setSnap] = useState(false);
+  // Encendido por defecto: pega el recorrido a las calles reales (los puntos
+  // detenidos ya se colapsan aparte, así que no fabrica rutas falsas).
+  const [snap, setSnap] = useState(true);
 
   const [fromMs, toMs] = useMemo((): [number, number] => {
     const nowMs = Date.now();
@@ -209,20 +222,24 @@ export function TrackHistory({ vehicleId, mapHeight = 420 }: { vehicleId: string
   const fitPoints = allPoints.length > 0 ? allPoints : restingLatLng ? [restingLatLng] : [];
 
   // ── Reproducción ──────────────────────────────────────────────
+  // Se anima sobre la LÍNEA DIBUJADA (allPoints), no sobre los puntos GPS
+  // crudos: así el marcador sigue exactamente el recorrido, esté ajustado a
+  // vías o crudo. El reloj y la velocidad se interpolan del viaje real.
   const [idx, setIdx] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState("4");
+  const frames = allPoints.length;
 
   useEffect(() => {
     setIdx(0);
     setPlaying(false);
-  }, [track]);
+  }, [allPoints]);
 
   useEffect(() => {
-    if (!playing || track.length < 2) return;
+    if (!playing || frames < 2) return;
     const interval = window.setInterval(() => {
       setIdx((prev) => {
-        if (prev >= track.length - 1) {
+        if (prev >= frames - 1) {
           setPlaying(false);
           return prev;
         }
@@ -230,9 +247,26 @@ export function TrackHistory({ vehicleId, mapHeight = 420 }: { vehicleId: string
       });
     }, 900 / Number(speed));
     return () => window.clearInterval(interval);
-  }, [playing, speed, track.length]);
+  }, [playing, speed, frames]);
 
-  const current = track[Math.min(idx, track.length - 1)] as TrackPoint | undefined;
+  const playIdx = Math.min(idx, Math.max(0, frames - 1));
+  const playPos = frames ? allPoints[playIdx] : null;
+  const playHeading = useMemo(() => {
+    if (frames < 2) return track[track.length - 1]?.direction ?? 0;
+    const i = playIdx === 0 ? 1 : playIdx;
+    return bearingDeg(allPoints[i - 1], allPoints[i]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allPoints, playIdx, frames]);
+
+  // Reloj/velocidad interpolados: los puntos ajustados a vías no traen marca de
+  // tiempo propia, así que se mapea el progreso al viaje real (movingTrack).
+  const tStart = movingTrack.length ? parseTs(movingTrack[0].timestamp) : 0;
+  const tEnd = movingTrack.length ? parseTs(movingTrack[movingTrack.length - 1].timestamp) : 0;
+  const playFrac = frames > 1 ? playIdx / (frames - 1) : 0;
+  const playTimeIso = new Date(tStart + playFrac * (tEnd - tStart)).toISOString();
+  const playSpeedKmh = movingTrack.length
+    ? movingTrack[Math.round(playFrac * (movingTrack.length - 1))].speed_kmh
+    : 0;
 
   const summary = useMemo(() => {
     if (track.length < 2) return null;
@@ -280,9 +314,8 @@ export function TrackHistory({ vehicleId, mapHeight = 420 }: { vehicleId: string
                 </Text>
                 <Text fz={12} c="dimmed" lh={1.4}>
                   Pega el recorrido del GPS a las calles reales para que se vea limpio siguiendo las
-                  vías, en vez de una línea quebrada. Útil cuando la moto se movió. Con la moto
-                  detenida conviene dejarlo apagado: el ruido del GPS puede dibujar una ruta que no
-                  ocurrió.
+                  vías, en vez de una línea quebrada. Si el servicio de vías no responde, se muestra
+                  el trazo GPS crudo automáticamente.
                 </Text>
               </Popover.Dropdown>
             </Popover>
@@ -337,7 +370,7 @@ export function TrackHistory({ vehicleId, mapHeight = 420 }: { vehicleId: string
           <Stat label="Puntos GPS" value={`${summary.points}`} />
           <Stat
             label="Punto actual"
-            value={current ? `${fmtDateTime(current.timestamp)} · ${Math.round(current.speed_kmh)} km/h` : "—"}
+            value={hasMovement ? `${fmtDateTime(playTimeIso)} · ${Math.round(playSpeedKmh)} km/h` : "—"}
           />
         </SimpleGrid>
       )}
@@ -372,11 +405,8 @@ export function TrackHistory({ vehicleId, mapHeight = 420 }: { vehicleId: string
               />
             </>
           )}
-          {hasMovement && current && (
-            <Marker
-              position={[current.lat, current.lon]}
-              icon={vehicleIcon("#2563eb", current.direction ?? 0, true)}
-            />
+          {hasMovement && playPos && (
+            <Marker position={playPos} icon={vehicleIcon("#2563eb", playHeading, true)} />
           )}
           {!hasMovement && restingLatLng && (
             <Marker
@@ -403,7 +433,7 @@ export function TrackHistory({ vehicleId, mapHeight = 420 }: { vehicleId: string
             radius="xl"
             variant="filled"
             onClick={() => {
-              if (idx >= track.length - 1) setIdx(0);
+              if (idx >= frames - 1) setIdx(0);
               setPlaying((p) => !p);
             }}
             aria-label={playing ? "Pausar" : "Reproducir"}
@@ -425,13 +455,17 @@ export function TrackHistory({ vehicleId, mapHeight = 420 }: { vehicleId: string
           <Slider
             style={{ flex: 1 }}
             min={0}
-            max={track.length - 1}
-            value={idx}
+            max={Math.max(0, frames - 1)}
+            value={playIdx}
             onChange={(v) => {
               setPlaying(false);
               setIdx(v);
             }}
-            label={(v) => (track[v] ? fmtDateTime(track[v].timestamp) : "")}
+            label={(v) =>
+              frames > 1
+                ? fmtDateTime(new Date(tStart + (v / (frames - 1)) * (tEnd - tStart)).toISOString())
+                : ""
+            }
           />
           <SegmentedControl
             size="xs"
