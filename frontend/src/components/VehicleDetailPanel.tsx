@@ -97,6 +97,20 @@ function StaticStreetView({ vehicleId }: { vehicleId: string }) {
   );
 }
 
+/** Rumbo (0-360°, 0 = norte) desde `from` hacia `to`, para apuntar la cámara
+ * de la panorámica al punto del GPS (que casi nunca coincide exactamente con
+ * el punto desde donde Google capturó la foto de la calle). */
+function bearingTo(from: { lat: number; lng: number }, to: { lat: number; lng: number }): number {
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const toDeg = (r: number) => (r * 180) / Math.PI;
+  const dLon = toRad(to.lng - from.lng);
+  const lat1 = toRad(from.lat);
+  const lat2 = toRad(to.lat);
+  const y = Math.sin(dLon) * Math.cos(lat2);
+  const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+  return (toDeg(Math.atan2(y, x)) + 360) % 360;
+}
+
 /** Panorama interactivo (arrastrar/mirar alrededor) vía Google Maps JS,
  * cargado solo en el navegador con una key restringida por dominio. */
 function InteractiveStreetView({ lat, lon, height = 180 }: { lat: number; lon: number; height?: number }) {
@@ -110,19 +124,27 @@ function InteractiveStreetView({ lat, lon, height = 180 }: { lat: number; lon: n
       if (!cancelled) setFailed(true);
     };
 
+    const position = { lat, lng: lon };
+
     loadGoogleMaps()
       .then(() => {
         if (cancelled || !containerRef.current) return;
-        const position = { lat, lng: lon };
-        new google.maps.StreetViewPanorama(containerRef.current, {
-          position,
-          pov: { heading: 0, pitch: 0 },
-          addressControl: false,
-          fullscreenControl: false,
-          motionTracking: false,
-        });
-        new google.maps.StreetViewService().getPanorama({ location: position, radius: 60 }, (_, status) => {
-          if (!cancelled && status !== google.maps.StreetViewStatus.OK) setFailed(true);
+        new google.maps.StreetViewService().getPanorama({ location: position, radius: 60 }, (data, status) => {
+          if (cancelled || !containerRef.current) return;
+          if (status !== google.maps.StreetViewStatus.OK || !data?.location?.latLng) {
+            setFailed(true);
+            return;
+          }
+          const panoLatLng = data.location.latLng;
+          const heading = bearingTo({ lat: panoLatLng.lat(), lng: panoLatLng.lng() }, position);
+          const panorama = new google.maps.StreetViewPanorama(containerRef.current, {
+            pano: data.location.pano,
+            pov: { heading, pitch: 0 },
+            addressControl: false,
+            fullscreenControl: false,
+            motionTracking: false,
+          });
+          new google.maps.Marker({ position, map: panorama, title: "Ubicación del GPS" });
         });
       })
       .catch(() => {
