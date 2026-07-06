@@ -166,11 +166,18 @@ function InteractiveStreetView({ lat, lon, height = 180 }: { lat: number; lon: n
             motionTracking: false,
           });
           new google.maps.Marker({ position, map: panorama, title: "Ubicación del GPS" });
-          // El marcador a veces no se reproyecta hasta que la vista cambia;
-          // forzamos un pequeño refresco una vez la panorámica ya cargó.
+          // El marcador no se reproyecta la primera vez si el POV no cambia de
+          // verdad (Google solo redibuja en el evento pov_changed): lo movemos
+          // un poco y lo devolvemos a su lugar para forzar ese evento.
           google.maps.event.addListenerOnce(panorama, "status_changed", () => {
             if (cancelled) return;
-            window.setTimeout(() => panorama.setPov(pov), 200);
+            window.setTimeout(() => {
+              if (cancelled) return;
+              panorama.setPov({ heading: pov.heading + 1, pitch: pov.pitch });
+              window.setTimeout(() => {
+                if (!cancelled) panorama.setPov(pov);
+              }, 80);
+            }, 250);
           });
         });
       })
