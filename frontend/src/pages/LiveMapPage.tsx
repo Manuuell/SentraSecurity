@@ -2,8 +2,9 @@ import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { ActionIcon, Drawer, Group, Indicator, Tooltip } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { Bell, Menu, Settings } from "lucide-react";
+import { Bell, Menu, Settings, Shapes } from "lucide-react";
 import { useAlarms } from "../api/alarms";
+import { useGeofences } from "../api/geofences";
 import { useTrackToday, useVehicles } from "../api/vehicles";
 import { useAuth } from "../auth/AuthProvider";
 import { useNow } from "../lib/useNow";
@@ -22,6 +23,7 @@ export default function LiveMapPage() {
   const { user } = useAuth();
   const vehiclesQ = useVehicles();
   const alarmsQ = useAlarms();
+  const geofencesQ = useGeofences();
 
   const selectedId = useLiveStore((s) => s.selectedId);
   const select = useLiveStore((s) => s.select);
@@ -36,6 +38,7 @@ export default function LiveMapPage() {
 
   const vehicles = vehiclesQ.data ?? [];
   const alarms = alarmsQ.data ?? [];
+  const geofences = geofencesQ.data ?? [];
 
   const unackedIds = useMemo(
     () => new Set(alarms.filter((a) => !a.acknowledged).map((a) => a.vehicle_id)),
@@ -77,6 +80,7 @@ export default function LiveMapPage() {
           follow={follow}
           onUserDrag={() => setFollow(false)}
           track={showTrack ? trackQ.data : undefined}
+          geofences={geofences}
         />
 
         <div className="map-float mobile-only" style={{ top: 16, left: 16 }}>
@@ -106,6 +110,19 @@ export default function LiveMapPage() {
               <Bell size={18} />
             </ActionIcon>
           </Indicator>
+          <Tooltip label="Zonas">
+            <ActionIcon
+              size={40}
+              radius="xl"
+              variant="default"
+              component={Link}
+              to="/geocercas"
+              aria-label="Zonas y geocercas"
+              style={{ boxShadow: "var(--shadow-soft)" }}
+            >
+              <Shapes size={18} />
+            </ActionIcon>
+          </Tooltip>
           {user?.role !== "client" && (
             <Tooltip label="Administración">
               <ActionIcon

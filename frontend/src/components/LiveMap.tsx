@@ -3,9 +3,11 @@ import { ActionIcon } from "@mantine/core";
 import { LocateFixed } from "lucide-react";
 import { DomEvent, divIcon, latLngBounds, type DivIcon } from "leaflet";
 import {
+  Circle,
   CircleMarker,
   MapContainer,
   Marker,
+  Polygon,
   Polyline,
   TileLayer,
   Tooltip as LeafletTooltip,
@@ -13,7 +15,7 @@ import {
   useMap,
   useMapEvent,
 } from "react-leaflet";
-import type { TrackPoint, Vehicle } from "../types";
+import type { CircleGeometry, Geofence, PolygonGeometry, TrackPoint, Vehicle } from "../types";
 import { STATUS_META, vehicleStatus } from "../lib/status";
 
 const CARTAGENA: [number, number] = [10.391, -75.4794];
@@ -172,6 +174,7 @@ interface Props {
   follow: boolean;
   onUserDrag: () => void;
   track?: TrackPoint[];
+  geofences?: Geofence[];
 }
 
 export function LiveMap({
@@ -183,6 +186,7 @@ export function LiveMap({
   follow,
   onUserDrag,
   track,
+  geofences,
 }: Props) {
   const selected = vehicles.find((v) => v.id === selectedId) ?? null;
   const trackLatLngs = (track ?? []).map((p) => [p.lat, p.lon] as [number, number]);
@@ -212,6 +216,29 @@ export function LiveMap({
           />
         </>
       )}
+
+      {/* Geocercas activas como contexto (no interactivas: no roban clics al mapa) */}
+      {(geofences ?? [])
+        .filter((g) => g.is_active)
+        .map((gf) => {
+          const opts = {
+            color: gf.color,
+            weight: 2,
+            fillColor: gf.color,
+            fillOpacity: 0.08,
+            interactive: false,
+          };
+          return gf.kind === "circle" ? (
+            <Circle
+              key={gf.id}
+              center={(gf.geometry as CircleGeometry).center}
+              radius={(gf.geometry as CircleGeometry).radius_m}
+              pathOptions={opts}
+            />
+          ) : (
+            <Polygon key={gf.id} positions={(gf.geometry as PolygonGeometry).points} pathOptions={opts} />
+          );
+        })}
 
       {vehicles
         .filter((v) => v.last_lat != null && v.last_lon != null)

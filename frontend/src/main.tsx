@@ -19,6 +19,9 @@ import { AdminLayout } from "./app/AdminLayout";
 // del recorrido) para no engordar el bundle inicial del mapa en vivo.
 const VehicleHistoryPage = lazy(() => import("./pages/VehicleHistoryPage"));
 
+// Gestión de geocercas: bajo demanda (arrastra Geoman) para no cargarlo en el mapa.
+const GeofencesPage = lazy(() => import("./pages/GeofencesPage"));
+
 // El área admin se carga bajo demanda: mantiene liviano el bundle del mapa en vivo
 const DashboardPage = lazy(() => import("./pages/admin/DashboardPage"));
 const DevicesPage = lazy(() => import("./pages/admin/DevicesPage"));
@@ -85,6 +88,14 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                     element={
                       <RequireAuth>
                         <VehicleHistoryPage />
+                      </RequireAuth>
+                    }
+                  />
+                  <Route
+                    path="/geocercas"
+                    element={
+                      <RequireAuth>
+                        <GeofencesPage />
                       </RequireAuth>
                     }
                   />

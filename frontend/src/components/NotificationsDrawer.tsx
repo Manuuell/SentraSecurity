@@ -7,6 +7,8 @@ import {
   Check,
   CheckCheck,
   Gauge,
+  LogIn,
+  LogOut,
   MapPin,
   Move,
   Siren,
@@ -35,6 +37,8 @@ const ALARM_ICON: Record<string, LucideIcon> = {
   VIBRATION: AlertTriangle,
   OVERSPEED: Gauge,
   LOW_BATTERY: BatteryLow,
+  GEOFENCE_ENTER: LogIn,
+  GEOFENCE_EXIT: LogOut,
 };
 
 /** Centro de notificaciones del usuario. Hoy se alimenta del flujo de alarmas

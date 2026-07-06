@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@geoman-io/leaflet-geoman-free": "^2.20.0",
     "@mantine/core": "^7.15.1",
     "@mantine/hooks": "^7.15.1",
     "@tanstack/react-query": "^5.62.7",

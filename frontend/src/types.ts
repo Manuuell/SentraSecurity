@@ -37,6 +37,8 @@ export type AlarmType =
   | "VIBRATION"
   | "OVERSPEED"
   | "LOW_BATTERY"
+  | "GEOFENCE_ENTER"
+  | "GEOFENCE_EXIT"
   | (string & {});
 
 export interface Alarm {
@@ -121,4 +123,38 @@ export interface DeviceCommand {
   /** Solo presentes para admin/operator mientras el comando sigue activo. */
   sms_text?: string;
   sms_phone?: string | null;
+}
+
+// ── Geocercas (Fase 5) ─────────────────────────────────────────────
+
+export type GeofenceKind = "circle" | "polygon";
+
+/** [lat, lon] en grados. */
+export type LatLon = [number, number];
+
+export interface CircleGeometry {
+  center: LatLon;
+  radius_m: number;
+}
+export interface PolygonGeometry {
+  points: LatLon[];
+}
+export type GeofenceGeometry = CircleGeometry | PolygonGeometry;
+
+export interface GeofenceVehicleLink {
+  vehicle_id: string;
+  notify_enter: boolean;
+  notify_exit: boolean;
+}
+
+export interface Geofence {
+  id: number;
+  name: string;
+  color: string;
+  kind: GeofenceKind;
+  geometry: GeofenceGeometry;
+  is_active: boolean;
+  created_by: number | null;
+  created_at: string | null;
+  vehicles: GeofenceVehicleLink[];
 }

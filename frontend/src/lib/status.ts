@@ -31,4 +31,6 @@ export const ALARM_LABELS: Record<string, { label: string; color: string }> = {
   VIBRATION: { label: "Vibración", color: "#d97706" },
   OVERSPEED: { label: "Exceso de velocidad", color: "#ea580c" },
   LOW_BATTERY: { label: "Batería baja", color: "#d97706" },
+  GEOFENCE_ENTER: { label: "Entró a zona", color: "#2563eb" },
+  GEOFENCE_EXIT: { label: "Salió de zona", color: "#7c3aed" },
 };
