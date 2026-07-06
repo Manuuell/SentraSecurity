@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ActionIcon,
   Badge,
+  Box,
   Button,
   CloseButton,
   Group,
@@ -20,6 +21,7 @@ import {
   Compass,
   Gauge,
   LocateFixed,
+  Maximize2,
   Pencil,
   Power,
   Route,
@@ -97,7 +99,7 @@ function StaticStreetView({ vehicleId }: { vehicleId: string }) {
 
 /** Panorama interactivo (arrastrar/mirar alrededor) vía Google Maps JS,
  * cargado solo en el navegador con una key restringida por dominio. */
-function InteractiveStreetView({ lat, lon }: { lat: number; lon: number }) {
+function InteractiveStreetView({ lat, lon, height = 180 }: { lat: number; lon: number; height?: number }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [failed, setFailed] = useState(false);
 
@@ -132,16 +134,60 @@ function InteractiveStreetView({ lat, lon }: { lat: number; lon: number }) {
     };
   }, [lat, lon]);
 
-  if (failed) return null;
-  return <div ref={containerRef} style={{ height: 180, borderRadius: 12, overflow: "hidden", marginTop: 16 }} />;
+  if (failed) {
+    return (
+      <Text fz={13} c="dimmed" ta="center" py="xl">
+        No se pudo cargar la vista interactiva.
+      </Text>
+    );
+  }
+  return <div ref={containerRef} style={{ height, borderRadius: 12, overflow: "hidden" }} />;
 }
 
+/** Miniatura estática siempre visible; si hay key de cliente y posición
+ * conocida, se puede tocar para "entrar" al panorama interactivo en grande. */
 function StreetViewPreview({ vehicle }: { vehicle: Vehicle }) {
   const hasClientKey = Boolean(import.meta.env.VITE_GOOGLE_MAPS_KEY);
-  if (hasClientKey && vehicle.last_lat != null && vehicle.last_lon != null) {
-    return <InteractiveStreetView lat={vehicle.last_lat} lon={vehicle.last_lon} />;
-  }
-  return <StaticStreetView vehicleId={vehicle.id} />;
+  const lat = vehicle.last_lat;
+  const lon = vehicle.last_lon;
+  const canExplore = hasClientKey && lat != null && lon != null;
+  const [exploring, setExploring] = useState(false);
+
+  return (
+    <>
+      <Box
+        pos="relative"
+        style={{ cursor: canExplore ? "pointer" : undefined }}
+        onClick={canExplore ? () => setExploring(true) : undefined}
+      >
+        <StaticStreetView vehicleId={vehicle.id} />
+        {canExplore && (
+          <Badge
+            leftSection={<Maximize2 size={11} />}
+            variant="filled"
+            color="dark"
+            radius="sm"
+            style={{ position: "absolute", right: 8, bottom: 8, pointerEvents: "none" }}
+          >
+            Ver en 360°
+          </Badge>
+        )}
+      </Box>
+
+      {hasClientKey && lat != null && lon != null && (
+        <Modal
+          opened={exploring}
+          onClose={() => setExploring(false)}
+          title={`Vista de calle — ${vehicle.name || vehicle.id}`}
+          size="lg"
+          centered
+          radius="lg"
+        >
+          <InteractiveStreetView lat={lat} lon={lon} height={420} />
+        </Modal>
+      )}
+    </>
+  );
 }
 
 export function VehicleDetailPanel({
