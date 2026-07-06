@@ -1,5 +1,7 @@
-import { useEffect } from "react";
-import { divIcon, type DivIcon } from "leaflet";
+import { useEffect, useRef } from "react";
+import { ActionIcon } from "@mantine/core";
+import { LocateFixed } from "lucide-react";
+import { DomEvent, divIcon, latLngBounds, type DivIcon } from "leaflet";
 import {
   CircleMarker,
   MapContainer,
@@ -46,6 +48,86 @@ export function vehicleIcon(color: string, heading: number, selected: boolean): 
   });
   iconCache.set(key, icon);
   return icon;
+}
+
+function positioned(vehicles: Vehicle[]): Vehicle[] {
+  return vehicles.filter((v) => v.last_lat != null && v.last_lon != null);
+}
+
+/** Encuadre inicial: la primera vez que llegan vehículos con posición, el
+ * mapa se acerca solo a ellos (uno → zoom cercano; varios → bounds), en vez
+ * de quedarse en la vista genérica de la ciudad. */
+function InitialFit({ vehicles }: { vehicles: Vehicle[] }) {
+  const map = useMap();
+  const done = useRef(false);
+
+  useEffect(() => {
+    if (done.current) return;
+    const withPos = positioned(vehicles);
+    if (withPos.length === 0) return;
+    done.current = true;
+    if (withPos.length === 1) {
+      map.setView([withPos[0].last_lat!, withPos[0].last_lon!], 16);
+    } else {
+      map.fitBounds(
+        latLngBounds(withPos.map((v) => [v.last_lat!, v.last_lon!] as [number, number])),
+        { padding: [48, 48], maxZoom: 16 },
+      );
+    }
+  }, [vehicles, map]);
+
+  return null;
+}
+
+/** Botón "centrar en el GPS" estilo Google Maps: vuela al vehículo
+ * seleccionado (o al único que haya); con varios y sin selección, los
+ * encuadra todos. */
+function LocateButton({ vehicles, selected }: { vehicles: Vehicle[]; selected: Vehicle | null }) {
+  const map = useMap();
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (ref.current) {
+      // Que el clic/scroll sobre el botón no arrastre ni haga zoom al mapa
+      DomEvent.disableClickPropagation(ref.current);
+      DomEvent.disableScrollPropagation(ref.current);
+    }
+  }, []);
+
+  const locate = () => {
+    const withPos = positioned(vehicles);
+    const target =
+      selected && selected.last_lat != null && selected.last_lon != null
+        ? selected
+        : withPos.length === 1
+          ? withPos[0]
+          : null;
+    if (target) {
+      map.flyTo([target.last_lat!, target.last_lon!], Math.max(map.getZoom(), 16), { duration: 0.8 });
+    } else if (withPos.length > 1) {
+      map.flyToBounds(
+        latLngBounds(withPos.map((v) => [v.last_lat!, v.last_lon!] as [number, number])),
+        { padding: [48, 48], maxZoom: 16, duration: 0.8 },
+      );
+    }
+  };
+
+  return (
+    <div className="leaflet-bottom leaflet-right">
+      <div ref={ref} className="leaflet-control" style={{ marginBottom: 88, marginRight: 10 }}>
+        <ActionIcon
+          size={40}
+          radius="xl"
+          variant="default"
+          aria-label="Centrar en el GPS"
+          onClick={locate}
+          style={{ boxShadow: "var(--shadow-soft)" }}
+        >
+          <LocateFixed size={18} />
+        </ActionIcon>
+      </div>
+    </div>
+  );
 }
 
 function FlyToSelected({ vehicle }: { vehicle: Vehicle | null }) {
@@ -112,6 +194,8 @@ export function LiveMap({
         url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
       />
       <ZoomControl position="bottomright" />
+      <InitialFit vehicles={vehicles} />
+      <LocateButton vehicles={vehicles} selected={selected} />
       <FlyToSelected vehicle={selected} />
       <FollowController vehicle={selected} follow={follow} onUserDrag={onUserDrag} />
 
