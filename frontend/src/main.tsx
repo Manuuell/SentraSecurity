@@ -15,6 +15,10 @@ import PrivacyPage from "./pages/PrivacyPage";
 import TermsPage from "./pages/TermsPage";
 import { AdminLayout } from "./app/AdminLayout";
 
+// Histórico como página propia: se carga bajo demanda (arrastra react-leaflet
+// del recorrido) para no engordar el bundle inicial del mapa en vivo.
+const VehicleHistoryPage = lazy(() => import("./pages/VehicleHistoryPage"));
+
 // El área admin se carga bajo demanda: mantiene liviano el bundle del mapa en vivo
 const DashboardPage = lazy(() => import("./pages/admin/DashboardPage"));
 const DevicesPage = lazy(() => import("./pages/admin/DevicesPage"));
@@ -76,6 +80,14 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                 <Routes>
                   <Route path="/" element={<HomeRoute />} />
                   <Route path="/login" element={<LoginRoute />} />
+                  <Route
+                    path="/vehiculo/:id/historial"
+                    element={
+                      <RequireAuth>
+                        <VehicleHistoryPage />
+                      </RequireAuth>
+                    }
+                  />
                   <Route path="/privacidad" element={<PrivacyPage />} />
                   <Route path="/terminos" element={<TermsPage />} />
                   <Route

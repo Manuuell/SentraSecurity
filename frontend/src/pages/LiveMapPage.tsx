@@ -10,7 +10,7 @@ import { useNow } from "../lib/useNow";
 import { vehicleStatus } from "../lib/status";
 import { useLiveStore } from "../realtime/liveStore";
 import { useRealtime } from "../realtime/useRealtime";
-import { AlarmsDrawer } from "../components/AlarmsDrawer";
+import { NotificationsDrawer } from "../components/NotificationsDrawer";
 import { ConnectionBadge } from "../components/ConnectionBadge";
 import { LiveMap } from "../components/LiveMap";
 import { Sidebar } from "../components/Sidebar";
@@ -100,7 +100,7 @@ export default function LiveMapPage() {
               radius="xl"
               variant="default"
               onClick={alarmsCtl.open}
-              aria-label="Ver alertas"
+              aria-label="Ver notificaciones"
               style={{ boxShadow: "var(--shadow-soft)" }}
             >
               <Bell size={18} />
@@ -143,7 +143,14 @@ export default function LiveMapPage() {
         <div style={{ height: "100dvh" }}>{sidebar}</div>
       </Drawer>
 
-      <AlarmsDrawer opened={alarmsOpen} onClose={alarmsCtl.close} alarms={alarms} vehicles={vehicles} />
+      <NotificationsDrawer
+        opened={alarmsOpen}
+        onClose={alarmsCtl.close}
+        alarms={alarms}
+        vehicles={vehicles}
+        now={now}
+        onSelectVehicle={select}
+      />
     </div>
   );
 }
